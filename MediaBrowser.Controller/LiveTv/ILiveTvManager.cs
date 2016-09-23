@@ -108,6 +108,7 @@ namespace MediaBrowser.Controller.LiveTv
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>QueryResult{RecordingInfoDto}.</returns>
         Task<QueryResult<BaseItemDto>> GetRecordings(RecordingQuery query, DtoOptions options, CancellationToken cancellationToken);
+        Task<QueryResult<BaseItemDto>> GetRecordingSeries(RecordingQuery query, DtoOptions options, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the timers.
@@ -331,12 +332,11 @@ namespace MediaBrowser.Controller.LiveTv
         /// <param name="user">The user.</param>
         /// <returns>Task.</returns>
         Task AddInfoToProgramDto(List<Tuple<BaseItem,BaseItemDto>> programs, List<ItemFields> fields, User user = null);
+      
         /// <summary>
         /// Saves the tuner host.
         /// </summary>
-        /// <param name="info">The information.</param>
-        /// <returns>Task.</returns>
-        Task<TunerHostInfo> SaveTunerHost(TunerHostInfo info);
+        Task<TunerHostInfo> SaveTunerHost(TunerHostInfo info, bool dataSourceChanged = true);
         /// <summary>
         /// Saves the listing provider.
         /// </summary>
@@ -365,11 +365,9 @@ namespace MediaBrowser.Controller.LiveTv
         /// <summary>
         /// Gets the registration information.
         /// </summary>
-        /// <param name="channelId">The channel identifier.</param>
-        /// <param name="programId">The program identifier.</param>
         /// <param name="feature">The feature.</param>
         /// <returns>Task&lt;MBRegistrationRecord&gt;.</returns>
-        Task<MBRegistrationRecord> GetRegistrationInfo(string channelId, string programId, string feature);
+        Task<MBRegistrationRecord> GetRegistrationInfo(string feature);
 
         /// <summary>
         /// Adds the channel information.

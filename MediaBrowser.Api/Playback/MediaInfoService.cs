@@ -15,7 +15,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.MediaEncoding;
+using MediaBrowser.Model.Serialization;
 
 namespace MediaBrowser.Api.Playback
 {
@@ -68,8 +70,10 @@ namespace MediaBrowser.Api.Playback
         private readonly IServerConfigurationManager _config;
         private readonly INetworkManager _networkManager;
         private readonly IMediaEncoder _mediaEncoder;
+        private readonly IUserManager _userManager;
+        private readonly IJsonSerializer _json;
 
-        public MediaInfoService(IMediaSourceManager mediaSourceManager, IDeviceManager deviceManager, ILibraryManager libraryManager, IServerConfigurationManager config, INetworkManager networkManager, IMediaEncoder mediaEncoder)
+        public MediaInfoService(IMediaSourceManager mediaSourceManager, IDeviceManager deviceManager, ILibraryManager libraryManager, IServerConfigurationManager config, INetworkManager networkManager, IMediaEncoder mediaEncoder, IUserManager userManager, IJsonSerializer json)
         {
             _mediaSourceManager = mediaSourceManager;
             _deviceManager = deviceManager;
@@ -77,6 +81,8 @@ namespace MediaBrowser.Api.Playback
             _config = config;
             _networkManager = networkManager;
             _mediaEncoder = mediaEncoder;
+            _userManager = userManager;
+            _json = json;
         }
 
         public object Get(GetBitrateTestBytes request)
@@ -119,7 +125,7 @@ namespace MediaBrowser.Api.Playback
 
                 SetDeviceSpecificData(item, result.MediaSource, profile, authInfo, request.MaxStreamingBitrate,
                     request.StartTimeTicks ?? 0, result.MediaSource.Id, request.AudioStreamIndex,
-                    request.SubtitleStreamIndex, request.PlaySessionId);
+                    request.SubtitleStreamIndex, request.PlaySessionId, request.UserId);
             }
             else
             {
@@ -144,6 +150,8 @@ namespace MediaBrowser.Api.Playback
 
             var profile = request.DeviceProfile;
 
+            //Logger.Info("GetPostedPlaybackInfo profile: {0}", _json.SerializeToString(profile));
+
             if (profile == null)
             {
                 var caps = _deviceManager.GetCapabilities(authInfo.DeviceId);
@@ -159,7 +167,7 @@ namespace MediaBrowser.Api.Playback
             {
                 var mediaSourceId = request.MediaSourceId;
 
-                SetDeviceSpecificData(request.Id, info, profile, authInfo, request.MaxStreamingBitrate ?? profile.MaxStreamingBitrate, request.StartTimeTicks ?? 0, mediaSourceId, request.AudioStreamIndex, request.SubtitleStreamIndex);
+                SetDeviceSpecificData(request.Id, info, profile, authInfo, request.MaxStreamingBitrate ?? profile.MaxStreamingBitrate, request.StartTimeTicks ?? 0, mediaSourceId, request.AudioStreamIndex, request.SubtitleStreamIndex, request.UserId);
             }
 
             return ToOptimizedResult(info);
@@ -221,13 +229,14 @@ namespace MediaBrowser.Api.Playback
             long startTimeTicks,
             string mediaSourceId,
             int? audioStreamIndex,
-            int? subtitleStreamIndex)
+            int? subtitleStreamIndex,
+            string userId)
         {
             var item = _libraryManager.GetItemById(itemId);
 
             foreach (var mediaSource in result.MediaSources)
             {
-                SetDeviceSpecificData(item, mediaSource, profile, auth, maxBitrate, startTimeTicks, mediaSourceId, audioStreamIndex, subtitleStreamIndex, result.PlaySessionId);
+                SetDeviceSpecificData(item, mediaSource, profile, auth, maxBitrate, startTimeTicks, mediaSourceId, audioStreamIndex, subtitleStreamIndex, result.PlaySessionId, userId);
             }
 
             SortMediaSources(result, maxBitrate);
@@ -242,7 +251,8 @@ namespace MediaBrowser.Api.Playback
             string mediaSourceId,
             int? audioStreamIndex,
             int? subtitleStreamIndex,
-            string playSessionId)
+            string playSessionId,
+            string userId)
         {
             var streamBuilder = new StreamBuilder(_mediaEncoder, Logger);
 
@@ -262,6 +272,8 @@ namespace MediaBrowser.Api.Playback
                 options.SubtitleStreamIndex = subtitleStreamIndex;
             }
 
+            var user = _userManager.GetUserById(userId);
+
             if (mediaSource.SupportsDirectPlay)
             {
                 var supportsDirectStream = mediaSource.SupportsDirectStream;
@@ -269,6 +281,21 @@ namespace MediaBrowser.Api.Playback
                 // Dummy this up to fool StreamBuilder
                 mediaSource.SupportsDirectStream = true;
                 options.MaxBitrate = maxBitrate;
+
+                if (item is Audio)
+                {
+                    if (!user.Policy.EnableAudioPlaybackTranscoding)
+                    {
+                        options.ForceDirectPlay = true;
+                    }
+                }
+                else if (item is Video)
+                {
+                    if (!user.Policy.EnableAudioPlaybackTranscoding && !user.Policy.EnableVideoPlaybackTranscoding && !user.Policy.EnablePlaybackRemuxing)
+                    {
+                        options.ForceDirectPlay = true;
+                    }
+                }
 
                 // The MediaSource supports direct stream, now test to see if the client supports it
                 var streamInfo = string.Equals(item.MediaType, MediaType.Audio, StringComparison.OrdinalIgnoreCase) ?
@@ -292,6 +319,21 @@ namespace MediaBrowser.Api.Playback
             if (mediaSource.SupportsDirectStream)
             {
                 options.MaxBitrate = GetMaxBitrate(maxBitrate);
+
+                if (item is Audio)
+                {
+                    if (!user.Policy.EnableAudioPlaybackTranscoding)
+                    {
+                        options.ForceDirectStream = true;
+                    }
+                }
+                else if (item is Video)
+                {
+                    if (!user.Policy.EnableAudioPlaybackTranscoding && !user.Policy.EnableVideoPlaybackTranscoding && !user.Policy.EnablePlaybackRemuxing)
+                    {
+                        options.ForceDirectStream = true;
+                    }
+                }
 
                 // The MediaSource supports direct stream, now test to see if the client supports it
                 var streamInfo = string.Equals(item.MediaType, MediaType.Audio, StringComparison.OrdinalIgnoreCase) ?

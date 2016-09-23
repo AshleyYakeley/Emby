@@ -101,6 +101,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using CommonIO;
+using MediaBrowser.Api.Playback;
 using MediaBrowser.Common.Implementations.Updates;
 
 namespace MediaBrowser.Server.Startup.Common
@@ -274,7 +275,7 @@ namespace MediaBrowser.Server.Startup.Common
         {
             get
             {
-                return "Media Browser Server";
+                return "Emby Server";
             }
         }
 
@@ -324,6 +325,15 @@ namespace MediaBrowser.Server.Startup.Common
 
             await MediaEncoder.Init().ConfigureAwait(false);
 
+            if (string.IsNullOrWhiteSpace(MediaEncoder.EncoderPath))
+            {
+                if (ServerConfigurationManager.Configuration.IsStartupWizardCompleted)
+                {
+                    ServerConfigurationManager.Configuration.IsStartupWizardCompleted = false;
+                    ServerConfigurationManager.SaveConfiguration();
+                }
+            }
+
             Logger.Info("ServerId: {0}", SystemId);
             Logger.Info("Core startup complete");
             HttpServer.GlobalResponse = null;
@@ -364,6 +374,7 @@ namespace MediaBrowser.Server.Startup.Common
         {
             var migrations = new List<IVersionMigration>
             {
+                new UpdateLevelMigration(ServerConfigurationManager, this, HttpClient, JsonSerializer, _releaseAssetFilename)
             };
 
             foreach (var task in migrations)
@@ -383,12 +394,8 @@ namespace MediaBrowser.Server.Startup.Common
         {
             var migrations = new List<IVersionMigration>
             {
-                new OmdbEpisodeProviderMigration(ServerConfigurationManager),
                 new MovieDbEpisodeProviderMigration(ServerConfigurationManager),
-                new DbMigration(ServerConfigurationManager, TaskManager),
-                new FolderViewSettingMigration(ServerConfigurationManager, UserManager),
-                new CollectionGroupingMigration(ServerConfigurationManager, UserManager),
-                new CollectionsViewMigration(ServerConfigurationManager, UserManager)
+                new DbMigration(ServerConfigurationManager, TaskManager)
             };
 
             foreach (var task in migrations)
@@ -524,7 +531,7 @@ namespace MediaBrowser.Server.Startup.Common
             PlaylistManager = new PlaylistManager(LibraryManager, FileSystemManager, LibraryMonitor, LogManager.GetLogger("PlaylistManager"), UserManager, ProviderManager);
             RegisterSingleInstance<IPlaylistManager>(PlaylistManager);
 
-            LiveTvManager = new LiveTvManager(this, ServerConfigurationManager, Logger, ItemRepository, ImageProcessor, UserDataManager, DtoService, UserManager, LibraryManager, TaskManager, LocalizationManager, JsonSerializer, ProviderManager, FileSystemManager);
+            LiveTvManager = new LiveTvManager(this, ServerConfigurationManager, Logger, ItemRepository, ImageProcessor, UserDataManager, DtoService, UserManager, LibraryManager, TaskManager, LocalizationManager, JsonSerializer, ProviderManager, FileSystemManager, SecurityManager);
             RegisterSingleInstance(LiveTvManager);
 
             UserViewManager = new UserViewManager(LibraryManager, LocalizationManager, UserManager, ChannelManager, LiveTvManager, ServerConfigurationManager);
@@ -550,7 +557,7 @@ namespace MediaBrowser.Server.Startup.Common
             await RegisterMediaEncoder(innerProgress).ConfigureAwait(false);
             progress.Report(90);
 
-            EncodingManager = new EncodingManager(FileSystemManager, Logger, MediaEncoder, ChapterManager);
+            EncodingManager = new EncodingManager(FileSystemManager, Logger, MediaEncoder, ChapterManager, LibraryManager);
             RegisterSingleInstance(EncodingManager);
 
             RegisterSingleInstance(NativeApp.GetPowerManagement());
@@ -608,7 +615,7 @@ namespace MediaBrowser.Server.Startup.Common
                 {
                     return new ImageMagickEncoder(LogManager.GetLogger("ImageMagick"), ApplicationPaths, HttpClient, FileSystemManager, ServerConfigurationManager);
                 }
-                catch (Exception ex)
+                catch
                 {
                     Logger.Error("Error loading ImageMagick. Will revert to GDI.");
                 }
@@ -618,7 +625,7 @@ namespace MediaBrowser.Server.Startup.Common
             {
                 return new GDIImageEncoder(FileSystemManager, LogManager.GetLogger("GDI"));
             }
-            catch (Exception ex)
+            catch
             {
                 Logger.Error("Error loading GDI. Will revert to NullImageEncoder.");
             }
@@ -767,6 +774,9 @@ namespace MediaBrowser.Server.Startup.Common
             UserView.PlaylistManager = PlaylistManager;
             BaseItem.CollectionManager = CollectionManager;
             BaseItem.MediaSourceManager = MediaSourceManager;
+            CollectionFolder.XmlSerializer = XmlSerializer;
+            BaseStreamingService.AppHost = this;
+            BaseStreamingService.HttpClient = HttpClient;
         }
 
         /// <summary>
@@ -774,7 +784,19 @@ namespace MediaBrowser.Server.Startup.Common
         /// </summary>
         protected override void FindParts()
         {
-            if (!ServerConfigurationManager.Configuration.IsPortAuthorized)
+            var isAuthorized = ServerConfigurationManager.Configuration.IsPortAuthorized;
+            if (isAuthorized)
+            {
+                try
+                {
+                    isAuthorized = !NativeApp.PortsRequireAuthorization(ConfigurationManager.CommonApplicationPaths.ApplicationPath);
+                }
+                catch
+                {
+                    
+                }
+            }
+            if (!isAuthorized)
             {
                 RegisterServerWithAdministratorAccess();
                 ServerConfigurationManager.Configuration.IsPortAuthorized = true;
@@ -822,42 +844,11 @@ namespace MediaBrowser.Server.Startup.Common
 
         private string CertificatePath { get; set; }
 
-        private string NormalizeConfiguredLocalAddress(string address)
-        {
-            var index = address.Trim('/').IndexOf('/');
-
-            if (index != -1)
-            {
-                address = address.Substring(index + 1);
-            }
-
-            return address.Trim('/');
-        }
         private IEnumerable<string> GetUrlPrefixes()
         {
-            var hosts = ServerConfigurationManager
-                .Configuration
-                .LocalNetworkAddresses
-                .Select(NormalizeConfiguredLocalAddress)
-                .ToList();
+            var hosts = new List<string>();
 
-            if (hosts.Count == 0)
-            {
-                hosts.Add("+");
-            }
-
-            if (!hosts.Contains("+", StringComparer.OrdinalIgnoreCase))
-            {
-                if (!hosts.Contains("localhost", StringComparer.OrdinalIgnoreCase))
-                {
-                    hosts.Add("localhost");
-                }
-
-                if (!hosts.Contains("127.0.0.1", StringComparer.OrdinalIgnoreCase))
-                {
-                    hosts.Add("127.0.0.1");
-                }
-            }
+            hosts.Add("+");
 
             return hosts.SelectMany(i =>
             {
@@ -978,7 +969,7 @@ namespace MediaBrowser.Server.Startup.Common
         {
             if (!CanSelfRestart)
             {
-                throw new InvalidOperationException("The server is unable to self-restart. Please restart manually.");
+                throw new PlatformNotSupportedException("The server is unable to self-restart. Please restart manually.");
             }
 
             try
@@ -1128,7 +1119,8 @@ namespace MediaBrowser.Server.Startup.Common
                 LocalAddress = localAddress,
                 SupportsLibraryMonitor = SupportsLibraryMonitor,
                 EncoderLocationType = MediaEncoder.EncoderLocationType,
-                SystemArchitecture = NativeApp.Environment.SystemArchitecture
+                SystemArchitecture = NativeApp.Environment.SystemArchitecture,
+                SystemUpdateLevel = ConfigurationManager.CommonConfiguration.SystemUpdateLevel
             };
         }
 
@@ -1362,8 +1354,8 @@ namespace MediaBrowser.Server.Startup.Common
                 cacheLength = TimeSpan.FromMinutes(5);
             }
 
-            var result = await new GithubUpdater(HttpClient, JsonSerializer, cacheLength).CheckForUpdateResult("MediaBrowser", "Emby", ApplicationVersion, updateLevel, _releaseAssetFilename,
-                    "MBServer", "Mbserver.zip", cancellationToken).ConfigureAwait(false);
+            var result = await new GithubUpdater(HttpClient, JsonSerializer).CheckForUpdateResult("MediaBrowser", "Emby", ApplicationVersion, updateLevel, _releaseAssetFilename,
+                    "MBServer", "Mbserver.zip", cacheLength, cancellationToken).ConfigureAwait(false);
 
             HasUpdateAvailable = result.IsUpdateAvailable;
 
@@ -1414,7 +1406,7 @@ namespace MediaBrowser.Server.Startup.Common
             {
                 return new Uri(externalDns).Host;
             }
-            catch (Exception e)
+            catch
             {
                 return externalDns;
             }
@@ -1423,6 +1415,11 @@ namespace MediaBrowser.Server.Startup.Common
         public void LaunchUrl(string url)
         {
             NativeApp.LaunchUrl(url);
+        }
+
+        public void EnableLoopback(string appName)
+        {
+            NativeApp.EnableLoopback(appName);
         }
     }
 }

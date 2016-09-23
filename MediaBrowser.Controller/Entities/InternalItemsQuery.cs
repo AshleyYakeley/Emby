@@ -37,6 +37,7 @@ namespace MediaBrowser.Controller.Entities
         public string[] Genres { get; set; }
         public string[] Keywords { get; set; }
 
+        public bool? IsSpecialSeason { get; set; }
         public bool? IsMissing { get; set; }
         public bool? IsUnaired { get; set; }
         public bool? IsVirtualUnaired { get; set; }
@@ -50,6 +51,7 @@ namespace MediaBrowser.Controller.Entities
 
         public string PresentationUniqueKey { get; set; }
         public string Path { get; set; }
+        public string PathNotStartsWith { get; set; }
         public string Name { get; set; }
         public string SlugName { get; set; }
 
@@ -138,6 +140,7 @@ namespace MediaBrowser.Controller.Entities
 
         public string[] AlbumNames { get; set; }
         public string[] ArtistNames { get; set; }
+        public string[] ExcludeArtistIds { get; set; }
         public string AncestorWithPresentationUniqueKey { get; set; }
 
         public bool GroupByPresentationUniqueKey { get; set; }
@@ -153,6 +156,7 @@ namespace MediaBrowser.Controller.Entities
 
             AlbumNames = new string[] { };
             ArtistNames = new string[] { };
+            ExcludeArtistIds = new string[] { };
             ExcludeProviderIds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             BlockUnratedItems = new UnratedItem[] { };

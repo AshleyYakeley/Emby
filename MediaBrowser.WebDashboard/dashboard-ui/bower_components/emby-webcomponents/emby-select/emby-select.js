@@ -4,8 +4,8 @@
 
     function enableNativeMenu() {
 
-        if (browser.xboxOne) {
-            return false;
+        if (browser.edgeUwp || browser.xboxOne) {
+            return true;
         }
 
         // Doesn't seem to work at all
@@ -36,7 +36,7 @@
         select.value = value;
     }
 
-    function showActionSheeet(select) {
+    function showActionSheet(select) {
 
         var labelElem = getLabel(select);
         var title = labelElem ? (labelElem.textContent || labelElem.innerText) : null;
@@ -81,7 +81,7 @@
         // e.button=0 for primary (left) mouse button click
         if (!e.button && !enableNativeMenu()) {
             e.preventDefault();
-            showActionSheeet(this);
+            showActionSheet(this);
         }
     }
 
@@ -92,7 +92,7 @@
             case 13:
                 if (!enableNativeMenu()) {
                     e.preventDefault();
-                    showActionSheeet(this);
+                    showActionSheet(this);
                 }
                 return;
             case 37:
@@ -113,7 +113,7 @@
     EmbySelectPrototype.createdCallback = function () {
 
         var parent = this.parentNode;
-        if (!parent.classList.contains('selectContainer')) {
+        if (parent && !parent.classList.contains('selectContainer')) {
             var div = this.ownerDocument.createElement('div');
             div.classList.add('selectContainer');
             parent.replaceChild(div, this);
@@ -125,12 +125,6 @@
             inputId++;
         }
 
-        this.removeEventListener('focus', onFocus);
-        this.removeEventListener('blur', onBlur);
-
-        this.removeEventListener('mousedown', onMouseDown);
-        this.removeEventListener('keydown', onKeyDown);
-
         this.addEventListener('mousedown', onMouseDown);
         this.addEventListener('keydown', onKeyDown);
 
@@ -140,20 +134,40 @@
 
     EmbySelectPrototype.attachedCallback = function () {
 
-        if (this.getAttribute('data-embyselect') != 'true') {
-            this.setAttribute('data-embyselect', 'true');
-
-            var label = this.ownerDocument.createElement('label');
-            label.innerHTML = this.getAttribute('label') || '';
-            label.classList.add('selectLabel');
-            label.classList.add('selectLabelUnfocused');
-            label.htmlFor = this.id;
-            this.parentNode.insertBefore(label, this);
-
-            var div = document.createElement('div');
-            div.classList.add('emby-select-selectionbar');
-            this.parentNode.insertBefore(div, this.nextSibling);
+        if (this.classList.contains('emby-select')) {
+            return;
         }
+
+        this.classList.add('emby-select');
+
+        var label = this.ownerDocument.createElement('label');
+        label.innerHTML = this.getAttribute('label') || '';
+        label.classList.add('selectLabel');
+        label.classList.add('selectLabelUnfocused');
+        label.htmlFor = this.id;
+        this.parentNode.insertBefore(label, this);
+
+        var div = document.createElement('div');
+        div.classList.add('emby-select-selectionbar');
+        this.parentNode.insertBefore(div, this.nextSibling);
+
+        var arrowContainer = document.createElement('div');
+        arrowContainer.classList.add('selectArrowContainer');
+        arrowContainer.innerHTML = '<div style="visibility:hidden;">0</div>';
+        this.parentNode.appendChild(arrowContainer);
+
+        var arrow = document.createElement('i');
+        arrow.classList.add('md-icon');
+        arrow.classList.add('selectArrow');
+        arrow.innerHTML = '&#xE313;';
+        arrowContainer.appendChild(arrow);
+    };
+
+    EmbySelectPrototype.setLabel = function (text) {
+
+        var label = this.parentNode.querySelector('label');
+
+        label.innerHTML = text;
     };
 
     document.registerElement('emby-select', {

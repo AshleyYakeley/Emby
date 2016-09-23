@@ -1,6 +1,5 @@
 ﻿using System;
 using MediaBrowser.Controller.Providers;
-using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Users;
 using MoreLinq;
@@ -51,6 +50,15 @@ namespace MediaBrowser.Controller.Entities.TV
             }
         }
 
+        [IgnoreDataMember]
+        public string SeriesSortName { get; set; }
+
+        public string FindSeriesSortName()
+        {
+            var series = Series;
+            return series == null ? SeriesSortName : series.SortName;
+        }
+
         // Genre, Rating and Stuido will all be the same
         protected override IEnumerable<string> GetIndexByOptions()
         {
@@ -77,7 +85,9 @@ namespace MediaBrowser.Controller.Entities.TV
 
         public override int GetChildCount(User user)
         {
-            return GetChildren(user, true).Count();
+            var result = GetChildren(user, true).Count();
+
+            return result;
         }
 
         /// <summary>
@@ -87,7 +97,11 @@ namespace MediaBrowser.Controller.Entities.TV
         [IgnoreDataMember]
         public Series Series
         {
-            get { return FindParent<Series>(); }
+            get
+            {
+                var seriesId = SeriesId ?? FindSeriesId();
+                return seriesId.HasValue ? (LibraryManager.GetItemById(seriesId.Value) as Series) : null;
+            }
         }
 
         [IgnoreDataMember]
@@ -106,22 +120,18 @@ namespace MediaBrowser.Controller.Entities.TV
             }
         }
 
-        [IgnoreDataMember]
-        public override string PresentationUniqueKey
+        public override string CreatePresentationUniqueKey()
         {
-            get
+            if (IndexNumber.HasValue)
             {
-                if (IndexNumber.HasValue)
+                var series = Series;
+                if (series != null)
                 {
-                    var series = Series;
-                    if (series != null)
-                    {
-                        return series.PresentationUniqueKey + "-" + (IndexNumber ?? 0).ToString("000");
-                    }
+                    return series.PresentationUniqueKey + "-" + (IndexNumber ?? 0).ToString("000");
                 }
-
-                return base.PresentationUniqueKey;
             }
+
+            return base.CreatePresentationUniqueKey();
         }
 
         /// <summary>
@@ -131,24 +141,6 @@ namespace MediaBrowser.Controller.Entities.TV
         protected override string CreateSortName()
         {
             return IndexNumber != null ? IndexNumber.Value.ToString("0000") : Name;
-        }
-
-        [IgnoreDataMember]
-        public bool IsMissingSeason
-        {
-            get { return (IsVirtualItem) && !IsUnaired; }
-        }
-
-        [IgnoreDataMember]
-        public bool IsVirtualUnaired
-        {
-            get { return (IsVirtualItem) && IsUnaired; }
-        }
-
-        [IgnoreDataMember]
-        public bool IsSpecialSeason
-        {
-            get { return (IndexNumber ?? -1) == 0; }
         }
 
         protected override Task<QueryResult<BaseItem>> GetItemsInternal(InternalItemsQuery query)
@@ -162,9 +154,11 @@ namespace MediaBrowser.Controller.Entities.TV
 
             Func<BaseItem, bool> filter = i => UserViewBuilder.Filter(i, user, query, UserDataManager, LibraryManager);
 
+            var id = Guid.NewGuid().ToString("N");
+
             var items = GetEpisodes(user).Where(filter);
 
-            var result = PostFilterAndSort(items, query);
+            var result = PostFilterAndSort(items, query, false, false);
 
             return Task.FromResult(result);
         }
@@ -176,46 +170,22 @@ namespace MediaBrowser.Controller.Entities.TV
         /// <returns>IEnumerable{Episode}.</returns>
         public IEnumerable<Episode> GetEpisodes(User user)
         {
-            var config = user.Configuration;
-
-            return GetEpisodes(Series, user, config.DisplayMissingEpisodes, config.DisplayUnairedEpisodes);
+            return GetEpisodes(Series, user);
         }
 
-        public IEnumerable<Episode> GetEpisodes(Series series, User user, bool includeMissingEpisodes, bool includeVirtualUnairedEpisodes)
+        public IEnumerable<Episode> GetEpisodes(Series series, User user)
         {
-            return GetEpisodes(series, user, includeMissingEpisodes, includeVirtualUnairedEpisodes, null);
+            return GetEpisodes(series, user, null);
         }
 
-        public IEnumerable<Episode> GetEpisodes(Series series, User user, bool includeMissingEpisodes, bool includeVirtualUnairedEpisodes, IEnumerable<Episode> allSeriesEpisodes)
+        public IEnumerable<Episode> GetEpisodes(Series series, User user, IEnumerable<Episode> allSeriesEpisodes)
         {
-            return series.GetEpisodes(user, this, includeMissingEpisodes, includeVirtualUnairedEpisodes, allSeriesEpisodes);
+            return series.GetSeasonEpisodes(this, user, allSeriesEpisodes);
         }
 
         public IEnumerable<Episode> GetEpisodes()
         {
-            var episodes = GetRecursiveChildren().OfType<Episode>();
-            var series = Series;
-
-            if (series != null && series.ContainsEpisodesWithoutSeasonFolders)
-            {
-                var seasonNumber = IndexNumber;
-                var list = episodes.ToList();
-
-                if (seasonNumber.HasValue)
-                {
-                    list.AddRange(series.GetRecursiveChildren().OfType<Episode>()
-                        .Where(i => i.ParentIndexNumber.HasValue && i.ParentIndexNumber.Value == seasonNumber.Value));
-                }
-                else
-                {
-                    list.AddRange(series.GetRecursiveChildren().OfType<Episode>()
-                        .Where(i => !i.ParentIndexNumber.HasValue));
-                }
-
-                episodes = list.DistinctBy(i => i.Id);
-            }
-
-            return episodes;
+            return Series.GetSeasonEpisodes(this, null, null);
         }
 
         public override IEnumerable<BaseItem> GetChildren(User user, bool includeLinkedChildren)
@@ -235,13 +205,21 @@ namespace MediaBrowser.Controller.Entities.TV
         }
 
         [IgnoreDataMember]
-        public string SeriesName
+        public string SeriesName { get; set; }
+
+        [IgnoreDataMember]
+        public Guid? SeriesId { get; set; }
+
+        public string FindSeriesName()
         {
-            get
-            {
-                var series = Series;
-                return series == null ? null : series.Name;
-            }
+            var series = Series;
+            return series == null ? SeriesName : series.Name;
+        }
+
+        public Guid? FindSeriesId()
+        {
+            var series = FindParent<Series>();
+            return series == null ? (Guid?)null : series.Id;
         }
 
         /// <summary>

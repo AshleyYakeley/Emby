@@ -1,4 +1,4 @@
-﻿define(['shell', 'dialogHelper', 'loading', 'layoutManager', 'connectionManager', 'scrollHelper', 'embyRouter', 'globalize', 'emby-input', 'emby-checkbox', 'paper-icon-button-light', 'emby-select', 'material-icons', 'css!./../formdialog', 'emby-button'], function (shell, dialogHelper, loading, layoutManager, connectionManager, scrollHelper, embyRouter, globalize) {
+﻿define(['shell', 'dialogHelper', 'loading', 'layoutManager', 'connectionManager', 'embyRouter', 'globalize', 'emby-input', 'emby-checkbox', 'paper-icon-button-light', 'emby-select', 'material-icons', 'css!./../formdialog', 'emby-button'], function (shell, dialogHelper, loading, layoutManager, connectionManager, embyRouter, globalize) {
 
     function parentWithClass(elem, className) {
 
@@ -17,8 +17,8 @@
 
         var html = '';
 
-        html += '<div class="dialogContent smoothScrollY">';
-        html += '<div class="dialogContentInner centeredContent">';
+        html += '<div class="formDialogContent smoothScrollY" style="padding-top:2em;">';
+        html += '<div class="dialogContentInner dialog-content-centered">';
         html += '<form style="margin:auto;">';
 
         html += '<div class="fldSelectPlaylist selectContainer">';
@@ -37,18 +37,25 @@
         html += globalize.translate('sharedcomponents#RefreshDialogHelp');
         html += '</div>';
 
-        html += '<br />';
-        html += '<div>';
-        html += '<button is="emby-button" type="submit" class="raised btnSubmit block" autofocus>' + globalize.translate('sharedcomponents#ButtonOk') + '</button>';
-        html += '</div>';
-
         html += '<input type="hidden" class="fldSelectedItemIds" />';
+
+        html += '<br />';
+        html += '<div class="formDialogFooter">';
+        html += '<button is="emby-button" type="submit" class="raised btnSubmit block formDialogFooterItem button-submit">' + globalize.translate('sharedcomponents#ButtonOk') + '</button>';
+        html += '</div>';
 
         html += '</form>';
         html += '</div>';
         html += '</div>';
 
         return html;
+    }
+
+    function centerFocus(elem, horiz, on) {
+        require(['scrollHelper'], function (scrollHelper) {
+            var fn = on ? 'on' : 'off';
+            scrollHelper.centerFocus[fn](elem, horiz);
+        });
     }
 
     return function (options) {
@@ -114,18 +121,17 @@
             var html = '';
             var title = globalize.translate('sharedcomponents#RefreshMetadata');
 
-            html += '<div class="dialogHeader" style="margin:0 0 2em;">';
-            html += '<button is="paper-icon-button-light" class="btnCancel autoSize" tabindex="-1"><i class="md-icon">arrow_back</i></button>';
-            html += '<div class="dialogHeaderTitle">';
+            html += '<div class="formDialogHeader">';
+            html += '<button is="paper-icon-button-light" class="btnCancel autoSize" tabindex="-1"><i class="md-icon">&#xE5C4;</i></button>';
+            html += '<h3 class="formDialogHeaderTitle">';
             html += title;
-            html += '</div>';
+            html += '</h3>';
 
             html += '</div>';
 
             html += getEditorHtml();
 
             dlg.innerHTML = html;
-            document.body.appendChild(dlg);
 
             initEditor(dlg);
 
@@ -135,10 +141,14 @@
             });
 
             if (layoutManager.tv) {
-                scrollHelper.centerFocus.on(dlg.querySelector('.dialogContent'), false);
+                centerFocus(dlg.querySelector('.formDialogContent'), false, true);
             }
 
             return new Promise(function (resolve, reject) {
+
+                if (layoutManager.tv) {
+                    centerFocus(dlg.querySelector('.formDialogContent'), false, false);
+                }
 
                 dlg.addEventListener('close', resolve);
                 dialogHelper.open(dlg);

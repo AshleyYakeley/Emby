@@ -18,6 +18,7 @@
         page.querySelector('#txtRecordingPath').value = config.RecordingPath || '';
         page.querySelector('#txtMovieRecordingPath').value = config.MovieRecordingPath || '';
         page.querySelector('#txtSeriesRecordingPath').value = config.SeriesRecordingPath || '';
+        page.querySelector('#selectConversionFormat').value = config.RecordingEncodingFormat || '';
 
         page.querySelector('#chkEnableRecordingSubfolders').checked = config.EnableRecordingSubfolders || false;
 
@@ -50,6 +51,7 @@
             config.MovieRecordingPath = movieRecordingPath;
             config.SeriesRecordingPath = seriesRecordingPath;
 
+            config.RecordingEncodingFormat = form.querySelector('#selectConversionFormat').value;
             config.PrePaddingSeconds = $('#txtPrePaddingMinutes', form).val() * 60;
             config.PostPaddingSeconds = $('#txtPostPaddingMinutes', form).val() * 60;
             config.EnableRecordingSubfolders = form.querySelector('#chkEnableRecordingSubfolders').checked;
@@ -169,7 +171,6 @@
         ApiClient.getNamedConfiguration("livetv").then(function (config) {
 
             loadPage(page, config);
-
         });
 
         if (AppInfo.enableSupporterMembership) {

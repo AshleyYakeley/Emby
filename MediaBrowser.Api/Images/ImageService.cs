@@ -273,7 +273,9 @@ namespace MediaBrowser.Api.Images
         {
             var list = new List<ImageInfo>();
 
-            foreach (var image in item.ImageInfos.Where(i => !item.AllowsMultipleImages(i.Type)))
+            var itemImages = item.ImageInfos;
+
+            foreach (var image in itemImages.Where(i => !item.AllowsMultipleImages(i.Type)))
             {
                 var info = GetImageInfo(item, image, null);
 
@@ -283,14 +285,14 @@ namespace MediaBrowser.Api.Images
                 }
             }
 
-            foreach (var imageType in item.ImageInfos.Select(i => i.Type).Distinct().Where(item.AllowsMultipleImages))
+            foreach (var imageType in itemImages.Select(i => i.Type).Distinct().Where(item.AllowsMultipleImages))
             {
                 var index = 0;
 
                 // Prevent implicitly captured closure
                 var currentImageType = imageType;
 
-                foreach (var image in item.ImageInfos.Where(i => i.Type == currentImageType))
+                foreach (var image in itemImages.Where(i => i.Type == currentImageType))
                 {
                     var info = GetImageInfo(item, image, index);
 
@@ -571,11 +573,9 @@ namespace MediaBrowser.Api.Images
 
             var outputFormats = GetOutputFormats(request, imageInfo, cropwhitespace, supportedImageEnhancers);
 
-            var cacheGuid = new Guid(_imageProcessor.GetImageCacheTag(item, imageInfo, supportedImageEnhancers));
-
             TimeSpan? cacheDuration = null;
 
-            if (!string.IsNullOrEmpty(request.Tag) && cacheGuid == new Guid(request.Tag))
+            if (!string.IsNullOrEmpty(request.Tag))
             {
                 cacheDuration = TimeSpan.FromDays(365);
             }
@@ -636,6 +636,7 @@ namespace MediaBrowser.Api.Images
                 CacheDuration = cacheDuration,
                 ResponseHeaders = headers,
                 ContentType = imageResult.Item2,
+                DateLastModified = imageResult.Item3,
                 IsHeadRequest = isHeadRequest,
                 Path = imageResult.Item1,
 

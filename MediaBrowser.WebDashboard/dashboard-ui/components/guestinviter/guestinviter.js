@@ -1,4 +1,4 @@
-﻿define(['dialogHelper', 'jQuery', 'emby-input', 'paper-button', 'emby-collapsible', 'paper-checkbox', 'paper-icon-button-light'], function (dialogHelper, $) {
+﻿define(['dialogHelper', 'jQuery', 'emby-input', 'emby-button', 'emby-collapse', 'paper-checkbox', 'paper-icon-button-light', 'formDialogStyle'], function (dialogHelper, $) {
 
     function renderLibrarySharingList(context, result) {
 
@@ -152,7 +152,6 @@
                     html += Globalize.translateDocument(template);
 
                     dlg.innerHTML = html;
-                    document.body.appendChild(dlg);
 
                     dialogHelper.open(dlg);
 

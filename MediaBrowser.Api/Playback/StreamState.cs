@@ -80,6 +80,13 @@ namespace MediaBrowser.Api.Playback
                     {
                         return 10;
                     }
+                    if (userAgent.IndexOf("cfnetwork", StringComparison.OrdinalIgnoreCase) != -1 ||
+                        userAgent.IndexOf("ipad", StringComparison.OrdinalIgnoreCase) != -1 ||
+                        userAgent.IndexOf("iphone", StringComparison.OrdinalIgnoreCase) != -1 ||
+                        userAgent.IndexOf("ipod", StringComparison.OrdinalIgnoreCase) != -1)
+                    {
+                        return 10;
+                    }
 
                     return 6;
                 }
@@ -105,6 +112,7 @@ namespace MediaBrowser.Api.Playback
         public string OutputVideoSync = "-1";
 
         public List<string> SupportedAudioCodecs { get; set; }
+        public List<string> SupportedVideoCodecs { get; set; }
         public string UserAgent { get; set; }
 
         public StreamState(IMediaSourceManager mediaSourceManager, ILogger logger)
@@ -112,6 +120,7 @@ namespace MediaBrowser.Api.Playback
             _mediaSourceManager = mediaSourceManager;
             _logger = logger;
             SupportedAudioCodecs = new List<string>();
+            SupportedVideoCodecs = new List<string>();
             PlayableStreamFileNames = new List<string>();
             RemoteHttpHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
@@ -204,7 +213,7 @@ namespace MediaBrowser.Api.Playback
 
         private async void DisposeLiveStream()
         {
-            if (MediaSource.RequiresClosing && string.IsNullOrWhiteSpace(Request.LiveStreamId))
+            if (MediaSource.RequiresClosing && string.IsNullOrWhiteSpace(Request.LiveStreamId) && !string.IsNullOrWhiteSpace(MediaSource.LiveStreamId))
             {
                 try
                 {

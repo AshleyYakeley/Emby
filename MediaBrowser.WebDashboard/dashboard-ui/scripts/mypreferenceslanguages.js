@@ -1,4 +1,4 @@
-﻿define(['appSettings', 'userSettings'], function (appSettings, userSettings) {
+﻿define(['appSettings', 'userSettingsBuilder'], function (appSettings, userSettingsBuilder) {
 
     function populateLanguages(select, languages) {
 
@@ -16,128 +16,133 @@
         select.innerHTML = html;
     }
 
-    function loadForm(page, user, loggedInUser, allCulturesPromise) {
+    return function (view, params) {
 
-        allCulturesPromise.then(function (allCultures) {
+        var userId = params.userId || Dashboard.getCurrentUserId();
+        var userSettings = new userSettingsBuilder();
+        var userSettingsLoaded;
 
-            populateLanguages(page.querySelector('#selectAudioLanguage'), allCultures);
-            populateLanguages(page.querySelector('#selectSubtitleLanguage'), allCultures);
+        function loadForm(page, user, loggedInUser, allCulturesPromise) {
 
-            page.querySelector('#selectAudioLanguage', page).value = user.Configuration.AudioLanguagePreference || "";
-            page.querySelector('#selectSubtitleLanguage', page).value = user.Configuration.SubtitleLanguagePreference || "";
-            page.querySelector('.chkEpisodeAutoPlay').checked = user.Configuration.EnableNextEpisodeAutoPlay || false;
-        });
+            userSettings.setUserInfo(userId, ApiClient).then(function () {
+                userSettingsLoaded = true;
+                allCulturesPromise.then(function (allCultures) {
 
-        page.querySelector('#selectSubtitlePlaybackMode').value = user.Configuration.SubtitleMode || "";
+                    populateLanguages(page.querySelector('#selectAudioLanguage'), allCultures);
+                    populateLanguages(page.querySelector('#selectSubtitleLanguage'), allCultures);
 
-        page.querySelector('.chkPlayDefaultAudioTrack').checked = user.Configuration.PlayDefaultAudioTrack || false;
-        page.querySelector('.chkEnableCinemaMode').checked = userSettings.enableCinemaMode();
-        page.querySelector('.chkExternalVideoPlayer').checked = appSettings.enableExternalPlayers();
+                    page.querySelector('#selectAudioLanguage', page).value = user.Configuration.AudioLanguagePreference || "";
+                    page.querySelector('#selectSubtitleLanguage', page).value = user.Configuration.SubtitleLanguagePreference || "";
+                    page.querySelector('.chkEpisodeAutoPlay').checked = user.Configuration.EnableNextEpisodeAutoPlay || false;
+                });
 
-        require(['qualityoptions'], function (qualityoptions) {
+                page.querySelector('#selectSubtitlePlaybackMode').value = user.Configuration.SubtitleMode || "";
 
-            var bitrateOptions = qualityoptions.getVideoQualityOptions(appSettings.maxStreamingBitrate()).map(function (i) {
+                page.querySelector('.chkPlayDefaultAudioTrack').checked = user.Configuration.PlayDefaultAudioTrack || false;
+                page.querySelector('.chkEnableCinemaMode').checked = userSettings.enableCinemaMode();
+                page.querySelector('.chkExternalVideoPlayer').checked = appSettings.enableExternalPlayers();
 
-                return '<option value="' + i.bitrate + '">' + i.name + '</option>';
+                require(['qualityoptions'], function (qualityoptions) {
 
-            }).join('');
+                    var bitrateOptions = qualityoptions.getVideoQualityOptions(appSettings.maxStreamingBitrate()).map(function (i) {
 
-            bitrateOptions = '<option value="">' + Globalize.translate('OptionAutomatic') + '</option>' + bitrateOptions;
+                        return '<option value="' + i.bitrate + '">' + i.name + '</option>';
 
-            page.querySelector('#selectMaxBitrate').innerHTML = bitrateOptions;
-            page.querySelector('#selectMaxChromecastBitrate').innerHTML = bitrateOptions;
+                    }).join('');
 
-            if (appSettings.enableAutomaticBitrateDetection()) {
-                page.querySelector('#selectMaxBitrate').value = '';
-            } else {
-                page.querySelector('#selectMaxBitrate').value = appSettings.maxStreamingBitrate();
-            }
+                    bitrateOptions = '<option value="">' + Globalize.translate('OptionAutomatic') + '</option>' + bitrateOptions;
 
-            page.querySelector('#selectMaxChromecastBitrate').value = appSettings.maxChromecastBitrate() || '';
+                    page.querySelector('#selectMaxBitrate').innerHTML = bitrateOptions;
+                    page.querySelector('#selectMaxChromecastBitrate').innerHTML = bitrateOptions;
 
-            Dashboard.hideLoadingMsg();
-        });
-    }
+                    if (appSettings.enableAutomaticBitrateDetection()) {
+                        page.querySelector('#selectMaxBitrate').value = '';
+                    } else {
+                        page.querySelector('#selectMaxBitrate').value = appSettings.maxStreamingBitrate();
+                    }
 
-    function loadPage(page) {
+                    page.querySelector('#selectMaxChromecastBitrate').value = appSettings.maxChromecastBitrate() || '';
 
-        Dashboard.showLoadingMsg();
-
-        var userId = getParameterByName('userId') || Dashboard.getCurrentUserId();
-
-        var promise1 = ApiClient.getUser(userId);
-
-        var promise2 = Dashboard.getCurrentUser();
-
-        var allCulturesPromise = ApiClient.getCultures();
-
-        Promise.all([promise1, promise2]).then(function (responses) {
-
-            loadForm(page, responses[1], responses[0], allCulturesPromise);
-
-        });
-
-        ApiClient.getNamedConfiguration("cinemamode").then(function (cinemaConfig) {
-
-            if (cinemaConfig.EnableIntrosForMovies || cinemaConfig.EnableIntrosForEpisodes) {
-                page.querySelector('.cinemaModeOptions').classList.remove('hide');
-            } else {
-                page.querySelector('.cinemaModeOptions').classList.add('hide');
-            }
-        });
-    }
-
-    function saveUser(page, user) {
-
-        user.Configuration.AudioLanguagePreference = page.querySelector('#selectAudioLanguage').value;
-        user.Configuration.SubtitleLanguagePreference = page.querySelector('#selectSubtitleLanguage').value;
-
-        user.Configuration.SubtitleMode = page.querySelector('#selectSubtitlePlaybackMode').value;
-        user.Configuration.PlayDefaultAudioTrack = page.querySelector('.chkPlayDefaultAudioTrack').checked;
-        user.Configuration.EnableNextEpisodeAutoPlay = page.querySelector('.chkEpisodeAutoPlay').checked;
-        userSettings.enableCinemaMode(page.querySelector('.chkEnableCinemaMode').checked);
-
-        return ApiClient.updateUserConfiguration(user.Id, user.Configuration);
-    }
-
-    function save(page) {
-
-        appSettings.enableExternalPlayers(page.querySelector('.chkExternalVideoPlayer').checked);
-
-        if (page.querySelector('#selectMaxBitrate').value) {
-            appSettings.maxStreamingBitrate(page.querySelector('#selectMaxBitrate').value);
-            appSettings.enableAutomaticBitrateDetection(false);
-        } else {
-            appSettings.enableAutomaticBitrateDetection(true);
+                    Dashboard.hideLoadingMsg();
+                });
+            });
         }
 
-        appSettings.maxChromecastBitrate(page.querySelector('#selectMaxChromecastBitrate').value);
+        function loadPage(page) {
 
-        var userId = getParameterByName('userId') || Dashboard.getCurrentUserId();
-
-        if (!AppInfo.enableAutoSave) {
             Dashboard.showLoadingMsg();
-        }
 
-        ApiClient.getUser(userId).then(function (result) {
+            var promise1 = ApiClient.getUser(userId);
 
-            saveUser(page, result).then(function () {
+            var promise2 = Dashboard.getCurrentUser();
 
-                Dashboard.hideLoadingMsg();
-                if (!AppInfo.enableAutoSave) {
-                    require(['toast'], function (toast) {
-                        toast(Globalize.translate('SettingsSaved'));
-                    });
-                }
+            var allCulturesPromise = ApiClient.getCultures();
 
-            }, function () {
-                Dashboard.hideLoadingMsg();
+            Promise.all([promise1, promise2]).then(function (responses) {
+
+                loadForm(page, responses[1], responses[0], allCulturesPromise);
+
             });
 
-        });
-    }
+            ApiClient.getNamedConfiguration("cinemamode").then(function (cinemaConfig) {
 
-    return function (view, params) {
+                if (cinemaConfig.EnableIntrosForMovies || cinemaConfig.EnableIntrosForEpisodes) {
+                    page.querySelector('.cinemaModeOptions').classList.remove('hide');
+                } else {
+                    page.querySelector('.cinemaModeOptions').classList.add('hide');
+                }
+            });
+        }
+
+        function saveUser(page, user) {
+
+            user.Configuration.AudioLanguagePreference = page.querySelector('#selectAudioLanguage').value;
+            user.Configuration.SubtitleLanguagePreference = page.querySelector('#selectSubtitleLanguage').value;
+
+            user.Configuration.SubtitleMode = page.querySelector('#selectSubtitlePlaybackMode').value;
+            user.Configuration.PlayDefaultAudioTrack = page.querySelector('.chkPlayDefaultAudioTrack').checked;
+            user.Configuration.EnableNextEpisodeAutoPlay = page.querySelector('.chkEpisodeAutoPlay').checked;
+            if (userSettingsLoaded) {
+                userSettings.enableCinemaMode(page.querySelector('.chkEnableCinemaMode').checked);
+            }
+
+            return ApiClient.updateUserConfiguration(user.Id, user.Configuration);
+        }
+
+        function save(page) {
+
+            appSettings.enableExternalPlayers(page.querySelector('.chkExternalVideoPlayer').checked);
+
+            if (page.querySelector('#selectMaxBitrate').value) {
+                appSettings.maxStreamingBitrate(page.querySelector('#selectMaxBitrate').value);
+                appSettings.enableAutomaticBitrateDetection(false);
+            } else {
+                appSettings.enableAutomaticBitrateDetection(true);
+            }
+
+            appSettings.maxChromecastBitrate(page.querySelector('#selectMaxChromecastBitrate').value);
+
+            if (!AppInfo.enableAutoSave) {
+                Dashboard.showLoadingMsg();
+            }
+
+            ApiClient.getUser(userId).then(function (result) {
+
+                saveUser(page, result).then(function () {
+
+                    Dashboard.hideLoadingMsg();
+                    if (!AppInfo.enableAutoSave) {
+                        require(['toast'], function (toast) {
+                            toast(Globalize.translate('SettingsSaved'));
+                        });
+                    }
+
+                }, function () {
+                    Dashboard.hideLoadingMsg();
+                });
+
+            });
+        }
 
         view.querySelector('#selectSubtitlePlaybackMode').addEventListener('change', function () {
 

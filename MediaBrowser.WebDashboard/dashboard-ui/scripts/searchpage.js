@@ -1,4 +1,4 @@
-﻿define(['libraryBrowser', 'focusManager', 'embyRouter', 'emby-input', 'paper-icon-button-light', 'material-icons'], function (libraryBrowser, focusManager, embyRouter) {
+﻿define(['libraryBrowser', 'focusManager', 'embyRouter', 'cardBuilder', 'emby-input', 'paper-icon-button-light', 'material-icons', 'emby-itemscontainer'], function (libraryBrowser, focusManager, embyRouter, cardBuilder) {
 
     function loadSuggestions(page) {
 
@@ -112,7 +112,7 @@
                 return i;
             });
 
-            var html = libraryBrowser.getPosterViewHtml({
+            var html = cardBuilder.getCardsHtml({
                 items: hints,
                 shape: "auto",
                 lazy: true,
@@ -121,8 +121,13 @@
                 centerImage: true,
                 centerText: true,
                 textLines: getAdditionalTextLines,
-                overlayPlayButton: true
+                overlayMoreButton: true,
+                serverId: ApiClient.serverInfo().Id
             });
+
+            if (!hints.length) {
+                html = '<p style="text-align:center;margin-top:2em;">' + Globalize.translate('NoResultsFound') + '</p>';
+            }
 
             var itemsContainer = searchResults;
             itemsContainer.innerHTML = html;
@@ -176,8 +181,6 @@
             loadSuggestions(view);
         }
 
-        libraryBrowser.createCardMenus(searchResults);
-
         view.querySelector('.txtSearch').addEventListener('input', function () {
             onSearchChange(this.value);
         });
@@ -187,11 +190,12 @@
         });
 
         view.addEventListener('viewbeforeshow', function (e) {
-            LibraryMenu.setMenuButtonVisible(false);
+            document.body.classList.add('hiddenViewMenuBar');
         });
 
         view.addEventListener('viewbeforehide', function (e) {
-            LibraryMenu.setMenuButtonVisible(true);
+
+            document.body.classList.remove('hiddenViewMenuBar');
         });
 
     };

@@ -1,4 +1,4 @@
-﻿define(['dialogHelper', 'globalize', 'layoutManager', 'mediaInfo', 'apphost', 'connectionManager', 'require', 'loading', 'scrollHelper', 'scrollStyles', 'emby-button', 'emby-collapsible', 'emby-input', 'paper-icon-button-light', 'css!./../formdialog', 'css!./recordingcreator', 'material-icons'], function (dialogHelper, globalize, layoutManager, mediaInfo, appHost, connectionManager, require, loading, scrollHelper) {
+﻿define(['dialogHelper', 'globalize', 'layoutManager', 'mediaInfo', 'apphost', 'connectionManager', 'require', 'loading', 'scrollHelper', 'scrollStyles', 'emby-button', 'emby-collapse', 'emby-input', 'paper-icon-button-light', 'css!./../formdialog', 'css!./recordingcreator', 'material-icons'], function (dialogHelper, globalize, layoutManager, mediaInfo, appHost, connectionManager, require, loading, scrollHelper) {
 
     var currentDialog;
     var recordingUpdated = false;
@@ -10,12 +10,11 @@
         var programInfo = item.ProgramInfo || {};
 
         context.querySelector('.itemName').innerHTML = item.Name;
-        context.querySelector('.itemEpisodeName').innerHTML = programInfo.EpisodeTitle || '';
 
         context.querySelector('.itemGenres').innerHTML = (programInfo.Genres || []).join(' / ');
         context.querySelector('.itemOverview').innerHTML = programInfo.Overview || '';
 
-        var timerPageImageContainer = context.querySelector('.timerPageImageContainer');
+        //var timerPageImageContainer = context.querySelector('.timerPageImageContainer');
 
         context.querySelector('.itemMiscInfoPrimary').innerHTML = mediaInfo.getPrimaryMediaInfoHtml(programInfo);
         context.querySelector('.itemMiscInfoSecondary').innerHTML = mediaInfo.getSecondaryMediaInfoHtml(programInfo);
@@ -76,11 +75,6 @@
         });
 
         context.querySelector('form').addEventListener('submit', onSubmit);
-
-        context.querySelector('.btnHeaderSave').addEventListener('click', function (e) {
-
-            context.querySelector('.btnSubmit').click();
-        });
     }
 
     function reload(context, id) {
@@ -127,21 +121,23 @@
                 html += globalize.translateDocument(template, 'sharedcomponents');
 
                 dlg.innerHTML = html;
-                document.body.appendChild(dlg);
 
                 currentDialog = dlg;
 
                 dlg.addEventListener('close', function () {
 
                     if (recordingUpdated) {
-                        resolve();
+                        resolve({
+                            updated: true,
+                            deleted: false
+                        });
                     } else {
                         reject();
                     }
                 });
 
                 if (layoutManager.tv) {
-                    scrollHelper.centerFocus.on(dlg.querySelector('.dialogContent'), false);
+                    scrollHelper.centerFocus.on(dlg.querySelector('.formDialogContent'), false);
                 }
 
                 init(dlg);

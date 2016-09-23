@@ -231,6 +231,8 @@ namespace MediaBrowser.Providers.MediaInfo
             video.HasSubtitles = mediaStreams.Any(i => i.Type == MediaStreamType.Subtitle);
             video.Timestamp = mediaInfo.Timestamp;
 
+            video.Video3DFormat = video.Video3DFormat ?? mediaInfo.Video3DFormat;
+
             await _itemRepo.SaveMediaStreams(video.Id, mediaStreams, cancellationToken).ConfigureAwait(false);
 
             if (options.MetadataRefreshMode == MetadataRefreshMode.FullRefresh ||
@@ -259,11 +261,18 @@ namespace MediaBrowser.Providers.MediaInfo
 
                 NormalizeChapterNames(chapters);
 
+                var libraryOptions = _libraryManager.GetLibraryOptions(video);
+                var extractDuringScan = chapterOptions.ExtractDuringLibraryScan;
+                if (libraryOptions != null && libraryOptions.SchemaVersion >= 2)
+                {
+                    extractDuringScan = libraryOptions.ExtractChapterImagesDuringLibraryScan;
+                }
+
                 await _encodingManager.RefreshChapterImages(new ChapterImageRefreshOptions
                 {
                     Chapters = chapters,
                     Video = video,
-                    ExtractImages = chapterOptions.ExtractDuringLibraryScan,
+                    ExtractImages = extractDuringScan,
                     SaveChapters = false
 
                 }, cancellationToken).ConfigureAwait(false);

@@ -1,4 +1,4 @@
-﻿define(['layoutManager', 'browser', 'css!./emby-input', 'registerElement'], function (layoutManager, browser) {
+﻿define(['layoutManager', 'browser', 'dom', 'css!./emby-input', 'registerElement'], function (layoutManager, browser, dom) {
 
     var EmbyInputPrototype = Object.create(HTMLInputElement.prototype);
 
@@ -31,59 +31,78 @@
         if (!this.id) {
             this.id = 'embyinput' + inputId;
             inputId++;
-        }
-    };
-
-    EmbyInputPrototype.attachedCallback = function () {
-
-        if (this.getAttribute('data-embyinput') == 'true') {
+        } if (this.classList.contains('emby-input')) {
             return;
         }
 
-        this.setAttribute('data-embyinput', 'true');
+        this.classList.add('emby-input');
 
         var parentNode = this.parentNode;
-        var label = this.ownerDocument.createElement('label');
+        var document = this.ownerDocument;
+        var label = document.createElement('label');
         label.innerHTML = this.getAttribute('label') || '';
         label.classList.add('inputLabel');
-
-        if (!supportsFloatingLabel || this.type == 'date') {
-            label.classList.add('nofloat');
-        }
+        label.classList.add('inputLabelUnfocused');
 
         label.htmlFor = this.id;
         parentNode.insertBefore(label, this);
+        this.labelElement = label;
 
         var div = document.createElement('div');
         div.classList.add('emby-input-selectionbar');
         parentNode.insertBefore(div, this.nextSibling);
 
-        function onChange() {
-            if (this.value) {
-                label.classList.remove('blank');
-            } else {
-                label.classList.add('blank');
+        dom.addEventListener(this, 'focus', function () {
+            onChange.call(this);
+            label.classList.add('inputLabelFocused');
+            label.classList.remove('inputLabelUnfocused');
+        }, {
+            passive: true
+        });
+
+        dom.addEventListener(this, 'blur', function () {
+            onChange.call(this);
+            label.classList.remove('inputLabelFocused');
+            label.classList.add('inputLabelUnfocused');
+        }, {
+            passive: true
+        });
+
+        dom.addEventListener(this, 'change', onChange, {
+            passive: true
+        });
+        dom.addEventListener(this, 'input', onChange, {
+            passive: true
+        });
+        dom.addEventListener(this, 'valueset', onChange, {
+            passive: true
+        });
+    };
+
+    function onChange() {
+
+        var label = this.labelElement;
+        if (this.value) {
+            label.classList.remove('inputLabel-float');
+        } else {
+
+            var instanceSupportsFloat = supportsFloatingLabel && this.type != 'date' && this.type != 'time';
+
+            if (instanceSupportsFloat) {
+                label.classList.add('inputLabel-float');
             }
         }
+    }
 
-        this.addEventListener('focus', function () {
-            onChange.call(this);
-            label.classList.add('focused');
-        });
-        this.addEventListener('blur', function () {
-            onChange.call(this);
-            label.classList.remove('focused');
-        });
+    EmbyInputPrototype.attachedCallback = function () {
 
-        this.addEventListener('change', onChange);
-        this.addEventListener('input', onChange);
-        this.addEventListener('valueset', onChange);
+        this.labelElement.htmlFor = this.id;
 
         onChange.call(this);
+    };
 
-        this.label = function (text) {
-            label.innerHTML = text;
-        };
+    EmbyInputPrototype.label = function (text) {
+        this.labelElement.innerHTML = text;
     };
 
     document.registerElement('emby-input', {

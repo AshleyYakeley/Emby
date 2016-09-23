@@ -204,5 +204,76 @@ namespace MediaBrowser.ServerApplication.Native
         {
             ((Process)sender).Dispose();
         }
+
+        public void EnableLoopback(string appName)
+        {
+            LoopUtil.Run(appName);
+        }
+
+        private bool Confirm()
+        {
+            if (MainStartup._splash == null)
+            {
+                return false;
+            }
+
+            return MessageBox.Show(MainStartup._splash, "Emby has detected that a rule has been added to Windows Firewall that may prevent your other devices from accessing Emby Server. Click OK to remove this rule, or cancel to proceed anyway.", "Windows Firewall", MessageBoxButtons.OKCancel) == DialogResult.OK;
+        }
+
+        public bool PortsRequireAuthorization(string applicationPath)
+        {
+            var appNameSrch = Path.GetFileName(applicationPath);
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "netsh",
+
+                Arguments = "advfirewall firewall show rule \"" + appNameSrch + "\"",
+
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                WindowStyle = ProcessWindowStyle.Hidden,
+                ErrorDialog = false,
+                RedirectStandardOutput = true
+            };
+
+            using (var process = Process.Start(startInfo))
+            {
+                process.Start();
+
+                try
+                {
+                    var data = process.StandardOutput.ReadToEnd() ?? string.Empty;
+
+                    if (data.IndexOf("Block", StringComparison.OrdinalIgnoreCase) != -1)
+                    {
+                        _logger.Info("Found potential windows firewall rule blocking Emby Server: " + data);
+                        return Confirm();
+                    }
+
+                    //var parts = data.Split('\n');
+
+                    //return parts.Length > 4;
+                    //return Confirm();
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    _logger.ErrorException("Error querying windows firewall", ex);
+
+                    // Hate having to do this
+                    try
+                    {
+                        process.Kill();
+                    }
+                    catch (Exception ex1)
+                    {
+                        _logger.ErrorException("Error killing process", ex1);
+                    }
+
+                    throw;
+                }
+            }
+        }
     }
 }

@@ -1,4 +1,4 @@
-﻿define(['dialogHelper', 'paper-checkbox', 'paper-input', 'paper-button', 'paper-icon-button-light'], function (dialogHelper) {
+﻿define(['dialogHelper', 'paper-checkbox', 'emby-input', 'emby-button', 'paper-icon-button-light', 'formDialogStyle'], function (dialogHelper) {
 
     var extractedName;
     var extractedYear;
@@ -156,9 +156,9 @@
             return;
         }
 
-        require(['components/itemidentifier/itemidentifier'], function (itemidentifier) {
+        require(['itemIdentifier'], function (itemIdentifier) {
 
-            itemidentifier.showFindNew(extractedName, extractedYear, 'Series').then(function (newItem) {
+            itemIdentifier.showFindNew(extractedName, extractedYear, 'Series', ApiClient.serverId()).then(function (newItem) {
 
                 if (newItem != null) {
                     currentNewItem = newItem;
@@ -214,9 +214,8 @@
                     html += Globalize.translateDocument(template);
 
                     dlg.innerHTML = html;
-                    document.body.appendChild(dlg);
 
-                    dlg.querySelector('.dialogHeaderTitle').innerHTML = Globalize.translate('FileOrganizeManually');
+                    dlg.querySelector('.formDialogHeaderTitle').innerHTML = Globalize.translate('FileOrganizeManually');
 
                     dialogHelper.open(dlg);
 

@@ -12,6 +12,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CommonIO;
+using MediaBrowser.Controller.Configuration;
+using MediaBrowser.Model.Configuration;
 
 namespace MediaBrowser.Server.Implementations.Library.Resolvers.TV
 {
@@ -52,14 +54,14 @@ namespace MediaBrowser.Server.Implementations.Library.Resolvers.TV
         {
             if (args.IsDirectory)
             {
+                if (args.HasParent<Series>())
+                {
+                    return null;
+                }
+
                 var collectionType = args.GetCollectionType();
                 if (string.Equals(collectionType, CollectionType.TvShows, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (args.HasParent<Series>())
-                    {
-                        return null;
-                    }
-
                     var configuredContentType = _libraryManager.GetConfiguredContentType(args.Path);
                     if (!string.Equals(configuredContentType, CollectionType.TvShows, StringComparison.OrdinalIgnoreCase))
                     {
@@ -74,16 +76,11 @@ namespace MediaBrowser.Server.Implementations.Library.Resolvers.TV
                 {
                     if (string.IsNullOrWhiteSpace(collectionType))
                     {
-                        if (args.HasParent<Series>())
-                        {
-                            return null;
-                        }
-
                         if (args.Parent.IsRoot)
                         {
                             return null;
                         }
-                        if (IsSeriesFolder(args.Path, args.FileSystemChildren, args.DirectoryService, _fileSystem, _logger, _libraryManager, false))
+                        if (IsSeriesFolder(args.Path, args.FileSystemChildren, args.DirectoryService, _fileSystem, _logger, _libraryManager, args.GetLibraryOptions(), false))
                         {
                             return new Series
                             {
@@ -104,6 +101,7 @@ namespace MediaBrowser.Server.Implementations.Library.Resolvers.TV
             IFileSystem fileSystem,
             ILogger logger,
             ILibraryManager libraryManager,
+            LibraryOptions libraryOptions,
             bool isTvContentType)
         {
             foreach (var child in fileSystemChildren)
@@ -134,7 +132,7 @@ namespace MediaBrowser.Server.Implementations.Library.Resolvers.TV
                 else
                 {
                     string fullName = child.FullName;
-                    if (libraryManager.IsVideoFile(fullName))
+                    if (libraryManager.IsVideoFile(fullName, libraryOptions))
                     {
                         if (isTvContentType)
                         {

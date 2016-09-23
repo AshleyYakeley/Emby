@@ -1,7 +1,5 @@
 ﻿using MediaBrowser.Controller;
-using MediaBrowser.Model.Logging;
 using System;
-using System.Diagnostics;
 
 namespace MediaBrowser.Server.Startup.Common.Browser
 {
@@ -28,6 +26,11 @@ namespace MediaBrowser.Server.Startup.Common.Browser
         public static void OpenCommunity(IServerApplicationHost appHost)
         {
             OpenUrl(appHost, "http://emby.media/community");
+        }
+
+        public static void OpenEmbyPremiere(IServerApplicationHost appHost)
+        {
+            OpenDashboardPage("supporterkey.html", appHost);
         }
 
         /// <summary>

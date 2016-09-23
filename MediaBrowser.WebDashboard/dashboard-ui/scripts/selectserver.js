@@ -1,4 +1,4 @@
-﻿define(['paper-icon-button-light'], function () {
+﻿define(['appSettings', 'paper-icon-button-light'], function (appSettings) {
 
     function updatePageStyle(page) {
 
@@ -71,7 +71,7 @@
 
     function showGeneralError() {
 
-        Dashboard.hideModalLoadingMsg();
+        Dashboard.hideLoadingMsg();
         Dashboard.alert({
             message: Globalize.translate('DefaultErrorMessage')
         });
@@ -98,7 +98,11 @@
 
             Dashboard.showLoadingMsg();
 
-            ConnectionManager.connectToServer(server).then(function (result) {
+            ConnectionManager.connectToServer(server, {
+
+                enableAutoLogin: appSettings.enableAutoLogin()
+
+            }).then(function (result) {
 
                 Dashboard.hideLoadingMsg();
 
@@ -138,12 +142,12 @@
 
         function acceptInvitation(page, id) {
 
-            Dashboard.showModalLoadingMsg();
+            Dashboard.showLoadingMsg();
 
             // Add/Update connect info
             ConnectionManager.acceptServer(id).then(function () {
 
-                Dashboard.hideModalLoadingMsg();
+                Dashboard.hideLoadingMsg();
                 loadPage(page);
 
             }, function () {
@@ -154,12 +158,12 @@
 
         function deleteServer(page, serverId) {
 
-            Dashboard.showModalLoadingMsg();
+            Dashboard.showLoadingMsg();
 
             // Add/Update connect info
             ConnectionManager.deleteServer(serverId).then(function () {
 
-                Dashboard.hideModalLoadingMsg();
+                Dashboard.hideLoadingMsg();
 
                 loadPage(page);
 
@@ -172,12 +176,12 @@
 
         function rejectInvitation(page, id) {
 
-            Dashboard.showModalLoadingMsg();
+            Dashboard.showLoadingMsg();
 
             // Add/Update connect info
             ConnectionManager.rejectServer(id).then(function () {
 
-                Dashboard.hideModalLoadingMsg();
+                Dashboard.hideLoadingMsg();
 
                 loadPage(page);
 

@@ -25,10 +25,24 @@ namespace MediaBrowser.Api
         /// <value>The id.</value>
         [ApiMember(Name = "Id", Description = "Item Id", IsRequired = true, DataType = "string", ParameterType = "path", Verb = "GET")]
         public string Id { get; set; }
+
+        public string ExcludeArtistIds { get; set; }
     }
 
-    public class BaseGetSimilarItems : IReturn<ItemsResult>, IHasItemFields
+    public class BaseGetSimilarItems : IReturn<ItemsResult>, IHasDtoOptions
     {
+        [ApiMember(Name = "EnableImages", Description = "Optional, include image information in output", IsRequired = false, DataType = "boolean", ParameterType = "query", Verb = "GET")]
+        public bool? EnableImages { get; set; }
+
+        [ApiMember(Name = "EnableUserData", Description = "Optional, include user data", IsRequired = false, DataType = "boolean", ParameterType = "query", Verb = "GET")]
+        public bool? EnableUserData { get; set; }
+
+        [ApiMember(Name = "ImageTypeLimit", Description = "Optional, the max number of images to return, per image type", IsRequired = false, DataType = "int", ParameterType = "query", Verb = "GET")]
+        public int? ImageTypeLimit { get; set; }
+
+        [ApiMember(Name = "EnableImageTypes", Description = "Optional. The image types to include in the output.", IsRequired = false, DataType = "string", ParameterType = "query", Verb = "GET")]
+        public string EnableImageTypes { get; set; }
+
         /// <summary>
         /// Gets or sets the user id.
         /// </summary>
@@ -69,6 +83,12 @@ namespace MediaBrowser.Api
                 IncludeItemTypes = includeTypes.Select(i => i.Name).ToArray(),
                 Recursive = true
             };
+
+            // ExcludeArtistIds
+            if (!string.IsNullOrEmpty(request.ExcludeArtistIds))
+            {
+                query.ExcludeArtistIds = request.ExcludeArtistIds.Split('|');
+            }
 
             var inputItems = libraryManager.GetItemList(query);
 

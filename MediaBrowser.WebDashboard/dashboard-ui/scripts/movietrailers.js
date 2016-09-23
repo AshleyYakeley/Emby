@@ -1,4 +1,4 @@
-﻿define(['events', 'libraryBrowser', 'imageLoader', 'alphaPicker'], function (events, libraryBrowser, imageLoader, alphaPicker) {
+﻿define(['events', 'libraryBrowser', 'imageLoader', 'alphaPicker', 'listView', 'cardBuilder', 'emby-itemscontainer'], function (events, libraryBrowser, imageLoader, alphaPicker, listView, cardBuilder) {
 
     return function (view, params, tabContent) {
 
@@ -18,13 +18,13 @@
                         SortOrder: "Ascending",
                         IncludeItemTypes: "Trailer",
                         Recursive: true,
-                        Fields: "PrimaryImageAspectRatio,SortName,SyncInfo",
+                        Fields: "PrimaryImageAspectRatio,SortName,BasicSyncInfo",
                         ImageTypeLimit: 1,
                         EnableImageTypes: "Primary,Backdrop,Banner,Thumb",
                         StartIndex: 0,
                         Limit: pageSize
                     },
-                    view: libraryBrowser.getSavedView(key) || libraryBrowser.getDefaultItemsView('Poster', 'Poster')
+                    view: libraryBrowser.getSavedView(key) || 'Poster'
                 };
 
                 libraryBrowser.loadSavedQueryValues(key, pageData.query);
@@ -74,23 +74,21 @@
 
                 if (viewStyle == "Thumb") {
 
-                    html = libraryBrowser.getPosterViewHtml({
+                    html = cardBuilder.getCardsHtml({
                         items: result.Items,
                         shape: "backdrop",
                         preferThumb: true,
                         context: 'movies',
-                        lazy: true,
                         overlayPlayButton: true
                     });
                 }
                 else if (viewStyle == "ThumbCard") {
 
-                    html = libraryBrowser.getPosterViewHtml({
+                    html = cardBuilder.getCardsHtml({
                         items: result.Items,
                         shape: "backdrop",
                         preferThumb: true,
                         context: 'movies',
-                        lazy: true,
                         cardLayout: true,
                         showTitle: true,
                         showYear: true
@@ -98,17 +96,16 @@
                 }
                 else if (viewStyle == "Banner") {
 
-                    html = libraryBrowser.getPosterViewHtml({
+                    html = cardBuilder.getCardsHtml({
                         items: result.Items,
                         shape: "banner",
                         preferBanner: true,
-                        context: 'movies',
-                        lazy: true
+                        context: 'movies'
                     });
                 }
                 else if (viewStyle == "List") {
 
-                    html = libraryBrowser.getListViewHtml({
+                    html = listView.getListViewHtml({
                         items: result.Items,
                         context: 'movies',
                         sortBy: query.SortBy
@@ -116,25 +113,23 @@
                 }
                 else if (viewStyle == "PosterCard") {
 
-                    html = libraryBrowser.getPosterViewHtml({
+                    html = cardBuilder.getCardsHtml({
                         items: result.Items,
                         shape: "portrait",
                         context: 'movies',
                         showTitle: true,
                         showYear: true,
-                        lazy: true,
                         cardLayout: true
                     });
                 }
                 else {
 
                     // Poster
-                    html = libraryBrowser.getPosterViewHtml({
+                    html = cardBuilder.getCardsHtml({
                         items: result.Items,
                         shape: "portrait",
                         context: 'movies',
                         centerText: true,
-                        lazy: true,
                         overlayPlayButton: true
                     });
                 }

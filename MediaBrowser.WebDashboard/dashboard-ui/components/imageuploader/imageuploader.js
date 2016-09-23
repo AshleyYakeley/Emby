@@ -145,20 +145,18 @@
 
             dlg.classList.add('ui-body-' + theme);
             dlg.classList.add('background-theme-' + theme);
-            dlg.classList.add('popupEditor');
 
             var html = '';
             html += '<h2 class="dialogHeader">';
-            html += '<button type="button" is="emby-button" icon="arrow-back" class="fab mini btnCloseDialog autoSize" tabindex="-1"><i class="md-icon">arrow_back</i></button>';
+            html += '<button type="button" is="emby-button" icon="arrow-back" class="fab mini btnCloseDialog autoSize" tabindex="-1"><i class="md-icon">&#xE5C4;</i></button>';
             html += '<div style="display:inline-block;margin-left:.6em;vertical-align:middle;">' + Globalize.translate('HeaderUploadImage') + '</div>';
             html += '</h2>';
 
-            html += '<div class="editorContent">';
+            html += '<div class="editorContent" style="padding:0 1em;">';
             html += Globalize.translateDocument(template);
             html += '</div>';
 
             dlg.innerHTML = html;
-            document.body.appendChild(dlg);
 
             // Has to be assigned a z-index after the call to .open() 
             $(dlg).on('close', onDialogClosed);

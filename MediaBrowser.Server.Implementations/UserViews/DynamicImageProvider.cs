@@ -14,17 +14,20 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using CommonIO;
+using MediaBrowser.Controller.LiveTv;
 
 namespace MediaBrowser.Server.Implementations.UserViews
 {
     public class DynamicImageProvider : BaseDynamicImageProvider<UserView>
     {
         private readonly IUserManager _userManager;
+        private readonly ILibraryManager _libraryManager;
 
-        public DynamicImageProvider(IFileSystem fileSystem, IProviderManager providerManager, IApplicationPaths applicationPaths, IImageProcessor imageProcessor, IUserManager userManager)
+        public DynamicImageProvider(IFileSystem fileSystem, IProviderManager providerManager, IApplicationPaths applicationPaths, IImageProcessor imageProcessor, IUserManager userManager, ILibraryManager libraryManager)
             : base(fileSystem, providerManager, applicationPaths, imageProcessor)
         {
             _userManager = userManager;
+            _libraryManager = libraryManager;
         }
 
         public override IEnumerable<ImageType> GetSupportedImages(IHasImages item)
@@ -50,7 +53,15 @@ namespace MediaBrowser.Server.Implementations.UserViews
 
             if (string.Equals(view.ViewType, CollectionType.LiveTv, StringComparison.OrdinalIgnoreCase))
             {
-                return new List<BaseItem>();
+                var programs = _libraryManager.GetItemList(new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { typeof(LiveTvProgram).Name },
+                    ImageTypes = new[] { ImageType.Primary },
+                    Limit = 30,
+                    IsMovie = true
+                }).ToList();
+
+                return GetFinalItems(programs).ToList();
             }
 
             if (string.Equals(view.ViewType, SpecialFolder.MovieGenre, StringComparison.OrdinalIgnoreCase) ||
@@ -72,7 +83,7 @@ namespace MediaBrowser.Server.Implementations.UserViews
                 User = view.UserId.HasValue ? _userManager.GetUserById(view.UserId.Value) : null,
                 CollapseBoxSetItems = false,
                 Recursive = recursive,
-                ExcludeItemTypes = new[] { "UserView", "CollectionFolder" }
+                ExcludeItemTypes = new[] { "UserView", "CollectionFolder", "Person" },
 
             }).ConfigureAwait(false);
 
@@ -85,11 +96,6 @@ namespace MediaBrowser.Server.Implementations.UserViews
                     if (series != null)
                     {
                         return series;
-                    }
-                    var episodeSeason = episode.Season;
-                    if (episodeSeason != null)
-                    {
-                        return episodeSeason;
                     }
 
                     return episode;
@@ -152,6 +158,7 @@ namespace MediaBrowser.Server.Implementations.UserViews
                 CollectionType.MusicVideos,
                 CollectionType.HomeVideos,
                 CollectionType.BoxSets,
+                CollectionType.LiveTv,
                 CollectionType.Playlists,
                 CollectionType.Photos,
                 string.Empty

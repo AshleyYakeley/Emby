@@ -1,4 +1,4 @@
-define(['viewcontainer', 'focusManager', 'queryString', 'connectionManager', 'events'], function (viewcontainer, focusManager, queryString, connectionManager, events) {
+define(['viewcontainer', 'focusManager', 'queryString', 'layoutManager'], function (viewcontainer, focusManager, queryString, layoutManager) {
 
     var currentView;
     var dispatchPageEvents;
@@ -35,8 +35,6 @@ define(['viewcontainer', 'focusManager', 'queryString', 'connectionManager', 'ev
 
     function onViewChange(view, options, isRestore) {
 
-        var viewType = options.type;
-
         var lastView = currentView;
         if (lastView) {
             dispatchViewEvent(lastView, 'viewhide');
@@ -51,7 +49,7 @@ define(['viewcontainer', 'focusManager', 'queryString', 'connectionManager', 'ev
                 focusManager.autoFocus(view);
             }
         }
-        else {
+        else if (!layoutManager.mobile) {
             if (view.activeElement && document.body.contains(view.activeElement) && focusManager.isCurrentlyFocusable(view.activeElement)) {
                 focusManager.focus(view.activeElement);
             } else {
@@ -123,67 +121,54 @@ define(['viewcontainer', 'focusManager', 'queryString', 'connectionManager', 'ev
     //events.on(connectionManager, 'localusersignedin', resetCachedViews);
     //events.on(connectionManager, 'localusersignedout', resetCachedViews);
 
-    function tryRestoreInternal(viewcontainer, options, resolve, reject) {
+    function ViewManager() {
+    }
+
+    ViewManager.prototype.loadView = function (options) {
+
+        var lastView = currentView;
+
+        // Record the element that has focus
+        if (lastView) {
+            lastView.activeElement = document.activeElement;
+        }
 
         if (options.cancel) {
             return;
         }
 
-        viewcontainer.tryRestoreView(options).then(function (view) {
+        viewcontainer.loadView(options).then(function (view) {
 
+            onViewChange(view, options);
+        });
+    };
+
+    ViewManager.prototype.tryRestoreView = function (options, onViewChanging) {
+
+        if (options.cancel) {
+            return Promise.reject({ cancelled: true });
+        }
+
+        // Record the element that has focus
+        if (currentView) {
+            currentView.activeElement = document.activeElement;
+        }
+
+        return viewcontainer.tryRestoreView(options).then(function (view) {
+
+            onViewChanging();
             onViewChange(view, options, true);
-            resolve();
 
-        }, reject);
-    }
+        });
+    };
 
-    function ViewManager() {
+    ViewManager.prototype.currentView = function () {
+        return currentView;
+    };
 
-        var self = this;
-
-        self.loadView = function (options) {
-
-            var lastView = currentView;
-
-            // Record the element that has focus
-            if (lastView) {
-                lastView.activeElement = document.activeElement;
-            }
-
-            if (options.cancel) {
-                return;
-            }
-
-            viewcontainer.loadView(options).then(function (view) {
-
-                onViewChange(view, options);
-            });
-        };
-
-        self.tryRestoreView = function (options) {
-            return new Promise(function (resolve, reject) {
-
-                if (options.cancel) {
-                    return;
-                }
-
-                // Record the element that has focus
-                if (currentView) {
-                    currentView.activeElement = document.activeElement;
-                }
-
-                tryRestoreInternal(viewcontainer, options, resolve, reject);
-            });
-        };
-
-        self.currentView = function () {
-            return currentView;
-        };
-
-        self.dispatchPageEvents = function (value) {
-            dispatchPageEvents = value;
-        };
-    }
+    ViewManager.prototype.dispatchPageEvents = function (value) {
+        dispatchPageEvents = value;
+    };
 
     return new ViewManager();
 });

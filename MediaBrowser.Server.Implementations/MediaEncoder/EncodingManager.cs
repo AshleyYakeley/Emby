@@ -14,6 +14,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CommonIO;
+using MediaBrowser.Controller.Library;
 
 namespace MediaBrowser.Server.Implementations.MediaEncoder
 {
@@ -24,16 +25,18 @@ namespace MediaBrowser.Server.Implementations.MediaEncoder
         private readonly ILogger _logger;
         private readonly IMediaEncoder _encoder;
         private readonly IChapterManager _chapterManager;
+        private readonly ILibraryManager _libraryManager;
 
         public EncodingManager(IFileSystem fileSystem, 
             ILogger logger, 
             IMediaEncoder encoder, 
-            IChapterManager chapterManager)
+            IChapterManager chapterManager, ILibraryManager libraryManager)
         {
             _fileSystem = fileSystem;
             _logger = logger;
             _encoder = encoder;
             _chapterManager = chapterManager;
+            _libraryManager = libraryManager;
         }
 
         /// <summary>
@@ -57,27 +60,38 @@ namespace MediaBrowser.Server.Implementations.MediaEncoder
                 return false;
             }
 
-            var options = _chapterManager.GetConfiguration();
-
-            if (video is Movie)
+            var libraryOptions = _libraryManager.GetLibraryOptions(video);
+            if (libraryOptions != null && libraryOptions.SchemaVersion >= 2)
             {
-                if (!options.EnableMovieChapterImageExtraction)
-                {
-                    return false;
-                }
-            }
-            else if (video is Episode)
-            {
-                if (!options.EnableEpisodeChapterImageExtraction)
+                if (!libraryOptions.EnableChapterImageExtraction)
                 {
                     return false;
                 }
             }
             else
             {
-                if (!options.EnableOtherVideoChapterImageExtraction)
+                var options = _chapterManager.GetConfiguration();
+
+                if (video is Movie)
                 {
-                    return false;
+                    if (!options.EnableMovieChapterImageExtraction)
+                    {
+                        return false;
+                    }
+                }
+                else if (video is Episode)
+                {
+                    if (!options.EnableEpisodeChapterImageExtraction)
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    if (!options.EnableOtherVideoChapterImageExtraction)
+                    {
+                        return false;
+                    }
                 }
             }
 
@@ -123,21 +137,28 @@ namespace MediaBrowser.Server.Implementations.MediaEncoder
                 {
                     if (extractImages)
                     {
-                        if (video.VideoType == VideoType.HdDvd || video.VideoType == VideoType.Iso || video.VideoType == VideoType.BluRay)
+                        if (video.VideoType == VideoType.HdDvd || video.VideoType == VideoType.Iso)
                         {
                             continue;
                         }
-
-                        // Add some time for the first chapter to make sure we don't end up with a black image
-                        var time = chapter.StartPositionTicks == 0 ? TimeSpan.FromTicks(Math.Min(FirstChapterTicks, video.RunTimeTicks ?? 0)) : TimeSpan.FromTicks(chapter.StartPositionTicks);
-
-                        var protocol = MediaProtocol.File;
-
-                        var inputPath = MediaEncoderHelpers.GetInputArgument(_fileSystem, video.Path, protocol, null, video.PlayableStreamFileNames);
+                        if (video.VideoType == VideoType.BluRay || video.VideoType == VideoType.Dvd)
+                        {
+                            if (video.PlayableStreamFileNames.Count != 1)
+                            {
+                                continue;
+                            }
+                        }
 
                         try
                         {
-							_fileSystem.CreateDirectory(Path.GetDirectoryName(path));
+                            // Add some time for the first chapter to make sure we don't end up with a black image
+                            var time = chapter.StartPositionTicks == 0 ? TimeSpan.FromTicks(Math.Min(FirstChapterTicks, video.RunTimeTicks ?? 0)) : TimeSpan.FromTicks(chapter.StartPositionTicks);
+
+                            var protocol = MediaProtocol.File;
+
+                            var inputPath = MediaEncoderHelpers.GetInputArgument(_fileSystem, video.Path, protocol, null, video.PlayableStreamFileNames);
+
+                            _fileSystem.CreateDirectory(Path.GetDirectoryName(path));
 
                             var tempFile = await _encoder.ExtractVideoImage(inputPath, protocol, video.Video3DFormat, time, cancellationToken).ConfigureAwait(false);
                             File.Copy(tempFile, path, true);
@@ -152,11 +173,12 @@ namespace MediaBrowser.Server.Implementations.MediaEncoder
                             }
 
                             chapter.ImagePath = path;
+                            chapter.ImageDateModified = _fileSystem.GetLastWriteTimeUtc(path);
                             changesMade = true;
                         }
                         catch (Exception ex)
                         {
-                            _logger.ErrorException("Error extracting chapter images for {0}", ex, string.Join(",", inputPath));
+                            _logger.ErrorException("Error extracting chapter images for {0}", ex, string.Join(",", video.Path));
                             success = false;
                             break;
                         }
@@ -170,6 +192,7 @@ namespace MediaBrowser.Server.Implementations.MediaEncoder
                 else if (!string.Equals(path, chapter.ImagePath, StringComparison.OrdinalIgnoreCase))
                 {
                     chapter.ImagePath = path;
+                    chapter.ImageDateModified = _fileSystem.GetLastWriteTimeUtc(path);
                     changesMade = true;
                 }
             }

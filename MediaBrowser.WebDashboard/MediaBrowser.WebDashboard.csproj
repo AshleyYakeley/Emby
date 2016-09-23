@@ -63,9 +63,9 @@
     <Reference Include="ServiceStack.Interfaces">
       <HintPath>..\ThirdParty\ServiceStack\ServiceStack.Interfaces.dll</HintPath>
     </Reference>
-    <Reference Include="WebMarkupMin.Core, Version=1.0.1.0, Culture=neutral, PublicKeyToken=99472178d266584b, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\WebMarkupMin.Core.1.0.1\lib\net40\WebMarkupMin.Core.dll</HintPath>
+    <Reference Include="WebMarkupMin.Core, Version=2.1.0.0, Culture=neutral, PublicKeyToken=99472178d266584b, processorArchitecture=MSIL">
+      <HintPath>..\packages\WebMarkupMin.Core.2.1.0\lib\net40-client\WebMarkupMin.Core.dll</HintPath>
+      <Private>True</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -101,13 +101,34 @@
     <Content Include="dashboard-ui\autoorganizesmart.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="dashboard-ui\camerauploadsettings.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="dashboard-ui\components\appfooter\appfooter.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="dashboard-ui\components\appfooter\appfooter.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="dashboard-ui\components\apphost.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="dashboard-ui\components\categorysyncbuttons.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\components\channelmapper\channelmapper.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\components\chromecasthelpers.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="dashboard-ui\components\directorybrowser\directorybrowser.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="dashboard-ui\components\dockedtabs\dockedtabs.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="dashboard-ui\components\dockedtabs\dockedtabs.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\components\favoriteitems.js">
@@ -122,16 +143,25 @@
     <Content Include="dashboard-ui\components\filterdialog\style.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="dashboard-ui\components\groupedcards.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="dashboard-ui\components\guestinviter\connectlink.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="dashboard-ui\components\guestinviter\connectlink.template.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="dashboard-ui\components\guestinviter\guestinviter.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\components\guestinviter\guestinviter.template.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\components\metadataeditor\metadataeditor.js">
+    <Content Include="dashboard-ui\components\libraryoptionseditor\libraryoptionseditor.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\components\metadataeditor\personeditor.template.html">
+    <Content Include="dashboard-ui\components\libraryoptionseditor\libraryoptionseditor.template.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\components\navdrawer\navdrawer.css">
@@ -146,10 +176,22 @@
     <Content Include="dashboard-ui\components\remotecontrolautoplay.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="dashboard-ui\components\syncjoblist\syncjoblist.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="dashboard-ui\components\tvproviders\xmltv.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\components\tvproviders\xmltv.template.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="dashboard-ui\css\images\throbber.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="dashboard-ui\scripts\camerauploadsettings.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="dashboard-ui\scripts\livetvschedule.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\scripts\userpasswordpage.js">
@@ -161,10 +203,10 @@
     <Content Include="dashboard-ui\css\dashboard.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\css\images\logo.png">
+    <Content Include="dashboard-ui\css\autoorganizetable.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\devices\windowsphone\wp.css">
+    <Content Include="dashboard-ui\css\images\logo.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\home.html">
@@ -186,12 +228,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\components\humanedate.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\components\itemidentifier\itemidentifier.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\components\itemidentifier\itemidentifier.template.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\components\imagedownloader\imagedownloader.js">
@@ -218,12 +254,6 @@
     <Content Include="dashboard-ui\components\medialibraryeditor\medialibraryeditor.template.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\components\metadataeditor\personeditor.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\components\metadataeditor\metadataeditor.template.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="dashboard-ui\css\images\ani_equalizer_black.gif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -239,16 +269,7 @@
     <Content Include="dashboard-ui\css\images\empty.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\css\images\logo536.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\css\images\splash.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\css\images\splash720.jpg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\css\images\touchicon144.png">
+    <Content Include="dashboard-ui\touchicon144.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\css\images\tour\admin\help.png">
@@ -261,9 +282,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\css\nowplayingbar.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\components\imageeditor\imageeditor.template.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\favorites.html">
@@ -314,7 +332,7 @@
     <Content Include="dashboard-ui\scripts\homeupcoming.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\scripts\librarydisplay.js">
+    <Content Include="dashboard-ui\dashboard\librarydisplay.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\scripts\livetvguideprovider.js">
@@ -326,7 +344,7 @@
     <Content Include="dashboard-ui\scripts\livetvtunerprovider-m3u.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\scripts\livetvtunerprovider-satip.js">
+    <Content Include="dashboard-ui\dashboard\livetvtunerprovider-satip.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\scripts\localsync.js">
@@ -344,7 +362,7 @@
     <Content Include="dashboard-ui\scripts\mysyncsettings.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\scripts\autoorganizesmart.js">
+    <Content Include="dashboard-ui\dashboard\autoorganizesmart.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\scripts\searchpage.js">
@@ -365,7 +383,7 @@
     <Content Include="dashboard-ui\scripts\tvlatest.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\scripts\wizardcomponents.js">
+    <Content Include="dashboard-ui\dashboard\wizardcomponents.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\scripts\wizardcontroller.js">
@@ -384,6 +402,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\serversecurity.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="dashboard-ui\serviceworker.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\shared.html">
@@ -488,7 +509,7 @@
     <Content Include="dashboard-ui\photos.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\scripts\dashboardhosting.js">
+    <Content Include="dashboard-ui\dashboard\dashboardhosting.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\scripts\forgotpassword.js">
@@ -674,9 +695,6 @@
     <Content Include="dashboard-ui\css\nowplaying.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\css\card.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="dashboard-ui\dashboardgeneral.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -737,9 +755,6 @@
     <Content Include="dashboard-ui\reports.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\livetvrecordinglist.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="dashboard-ui\livetvseriestimer.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -785,9 +800,6 @@
     <Content Include="dashboard-ui\css\images\fresh.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\css\images\items\searchhintsv2\tv.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="dashboard-ui\css\images\media\chapterflyout.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -813,9 +825,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\css\librarybrowser.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\css\tileitem.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\edititemmetadata.html">
@@ -857,13 +866,13 @@
     <Content Include="dashboard-ui\scripts\chromecast.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\scripts\cinemamodeconfiguration.js">
+    <Content Include="dashboard-ui\dashboard\cinemamodeconfiguration.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\scripts\connectlogin.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\scripts\dashboardgeneral.js">
+    <Content Include="dashboard-ui\dashboard\dashboardgeneral.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\scripts\syncactivity.js">
@@ -875,7 +884,7 @@
     <Content Include="dashboard-ui\scripts\devices.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\scripts\devicesupload.js">
+    <Content Include="dashboard-ui\dashboard\devicesupload.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\scripts\dlnaprofile.js">
@@ -890,19 +899,16 @@
     <Content Include="dashboard-ui\scripts\encodingsettings.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\scripts\autoorganizetv.js">
+    <Content Include="dashboard-ui\dashboard\autoorganizetv.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\scripts\autoorganizelog.js">
+    <Content Include="dashboard-ui\dashboard\autoorganizelog.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\scripts\externalplayer.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\scripts\favorites.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\scripts\librarylist.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\scripts\librarymenu.js">
@@ -933,9 +939,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\scripts\livetvchannel.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\scripts\livetvrecordinglist.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\scripts\livetvseriestimer.js">
@@ -992,12 +995,6 @@
     <Content Include="dashboard-ui\scripts\livetvsuggested.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\scripts\sync.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\scripts\thememediaplayer.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="dashboard-ui\scripts\tvupcoming.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -1043,42 +1040,6 @@
     <Content Include="dashboard-ui\userpassword.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\voice\commands\controlcommands.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\voice\commands\disablecommands.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\voice\commands\enablecommands.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\voice\commands\playcommands.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\voice\commands\searchcommands.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\voice\commands\showcommands.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\voice\commands\togglecommands.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\voice\grammarprocessor.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\voice\voicedialog.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\voice\voice.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\voice\voice.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\voice\voicecommands.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="dashboard-ui\wizardagreement.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -1119,13 +1080,10 @@
     <Content Include="dashboard-ui\music.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\components\imageeditor\imageeditor.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="dashboard-ui\scripts\edititemmetadata.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\scripts\librarysettings.js">
+    <Content Include="dashboard-ui\dashboard\librarysettings.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\scripts\musicrecommended.js">
@@ -1253,13 +1211,13 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="dashboard-ui\css\images\touchicon.png">
+    <Content Include="dashboard-ui\touchicon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\css\images\touchicon114.png">
+    <Content Include="dashboard-ui\touchicon114.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\css\images\touchicon72.png">
+    <Content Include="dashboard-ui\touchicon72.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -1387,17 +1345,12 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="dashboard-ui\css\images\checkmarkblack.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="dashboard-ui\log.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="dashboard-ui\scripts\logpage.js">
+    <Content Include="dashboard-ui\dashboard\logpage.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -1445,16 +1398,6 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="dashboard-ui\css\images\notifications\download.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="dashboard-ui\scripts\extensions.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="dashboard-ui\css\images\supporter\supporterbadge.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -1470,24 +1413,6 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="dashboard-ui\css\images\notifications\done.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="dashboard-ui\css\images\notifications\error.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="dashboard-ui\css\images\notifications\cancelled.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="dashboard-ui\css\images\notifications\info.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="dashboard-ui\itemdetails.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -1498,7 +1423,7 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="dashboard-ui\scripts\aboutpage.js">
+    <Content Include="dashboard-ui\dashboard\aboutpage.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\css\images\supporter\supporterflag.png">
@@ -1510,7 +1435,7 @@
     <Content Include="dashboard-ui\itemlist.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\scripts\wizardfinishpage.js">
+    <Content Include="dashboard-ui\dashboard\wizardfinishpage.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="dashboard-ui\css\images\items\detail\video.png">
@@ -1531,17 +1456,11 @@
     <Content Include="dashboard-ui\about.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="dashboard-ui\css\images\stars.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="dashboard-ui\scripts\mediaplayer.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <None Include="dashboard-ui\css\fonts\Montserrat.woff">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <Content Include="dashboard-ui\strings\ar.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -1650,6 +1569,9 @@
     <None Include="dashboard-ui\manifest.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="dashboard-ui\strings\be-BY.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="dashboard-ui\strings\fr-CA.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -1674,15 +1596,6 @@
     <Content Include="dashboard-ui\thirdparty\jquerymobile-1.4.5\jqm.popup.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <None Include="dashboard-ui\voice\grammar\en-US.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="dashboard-ui\voice\grammar\grammar.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="dashboard-ui\voice\Readme.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup />

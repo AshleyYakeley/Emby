@@ -1,4 +1,4 @@
-﻿define(['dialogHelper', 'jQuery', 'emby-input', 'emby-select', 'paper-fab', 'paper-item-body', 'paper-icon-item', 'paper-icon-button-light'], function (dialogHelper, $) {
+﻿define(['dialogHelper', 'jQuery', 'components/libraryoptionseditor/libraryoptionseditor', 'emby-input', 'emby-select', 'paper-icon-button-light', 'listViewStyle', 'formDialogStyle'], function (dialogHelper, $, libraryoptionseditor) {
 
     var currentDeferred;
     var hasChanges;
@@ -27,7 +27,9 @@
             type = null;
         }
 
-        ApiClient.addVirtualFolder(name, type, currentOptions.refresh, paths).then(function () {
+        var libraryOptions = libraryoptionseditor.getLibraryOptions(dlg.querySelector('.libraryOptions'));
+
+        ApiClient.addVirtualFolder(name, type, currentOptions.refresh, paths, libraryOptions).then(function () {
 
             hasChanges = true;
             dialogHelper.close(dlg);
@@ -59,11 +61,21 @@
 
         $('#selectCollectionType', page).html(getCollectionTypeOptionsHtml(collectionTypeOptions)).val('').on('change', function () {
 
-            if (this.value == 'mixed') {
-                return;
-            }
+            var value = this.value;
 
             var dlg = $(this).parents('.dialog')[0];
+
+            libraryoptionseditor.setContentType(dlg.querySelector('.libraryOptions'), (value == 'mixed' ? '' : value));
+
+            if (value) {
+                dlg.querySelector('.libraryOptions').classList.remove('hide');
+            } else {
+                dlg.querySelector('.libraryOptions').classList.add('hide');
+            }
+
+            if (value == 'mixed') {
+                return;
+            }
 
             var index = this.selectedIndex;
             if (index != -1) {
@@ -71,8 +83,6 @@
                 var name = this.options[index].innerHTML
                     .replace('*', '')
                     .replace('&amp;', '&');
-
-                var value = this.value;
 
                 $('#txtValue', dlg).val(name);
 
@@ -84,6 +94,7 @@
 
                 $('.collectionTypeFieldDescription', dlg).html(folderOption.message || '');
             }
+
         });
 
         $('.btnAddFolder', page).on('click', onAddButtonClick);
@@ -92,7 +103,7 @@
 
     function onAddButtonClick() {
 
-        var page = $(this).parents('.popupEditor')[0];
+        var page = $(this).parents('.dlg-librarycreator')[0];
 
         require(['directorybrowser'], function (directoryBrowser) {
 
@@ -116,17 +127,17 @@
 
         var html = '';
 
-        html += '<paper-icon-item role="menuitem" class="lnkPath">';
+        html += '<div class="listItem lnkPath">';
 
-        html += '<paper-fab mini style="background:#52B54B;" icon="folder" item-icon></paper-fab>';
+        html += '<i class="listItemIcon md-icon">folder</i>';
 
-        html += '<paper-item-body>';
-        html += path;
-        html += '</paper-item-body>';
+        html += '<div class="listItemBody">';
+        html += '<div class="listItemBodyText">' + path + '</div>';
+        html += '</div>';
 
-        html += '<button is="paper-icon-button-light"" class="btnRemovePath" data-index="' + index + '"><iron-icon icon="remove-circle"></iron-icon></button>';
+        html += '<button is="paper-icon-button-light"" class="listItemButton btnRemovePath" data-index="' + index + '"><i class="md-icon">remove_circle</i></button>';
 
-        html += '</paper-icon-item>';
+        html += '</div>';
 
         return html;
     }
@@ -168,7 +179,7 @@
 
             return p.toLowerCase() != location.toLowerCase();
         });
-        var page = $(this).parents('.popupEditor')[0];
+        var page = $(this).parents('.dlg-librarycreator')[0];
         renderPaths(page);
     }
 
@@ -176,6 +187,12 @@
 
         Dashboard.hideLoadingMsg();
         currentDeferred.resolveWith(null, [hasChanges]);
+    }
+
+    function initLibraryOptions(dlg) {
+        libraryoptionseditor.embed(dlg.querySelector('.libraryOptions')).then(function() {
+            $('#selectCollectionType', dlg).trigger('change');
+        });
     }
 
     function editor() {
@@ -197,20 +214,21 @@
 
                 var template = this.response;
                 var dlg = dialogHelper.createDialog({
-                    size: 'small',
+                    size: 'medium',
 
                     // In (at least) chrome this is causing the text field to not be editable
                     modal: false,
 
-                    removeOnClose: true
+                    removeOnClose: true,
+                    scrollY: false
                 });
 
                 dlg.classList.add('ui-body-a');
                 dlg.classList.add('background-theme-a');
-                dlg.classList.add('popupEditor');
+                dlg.classList.add('dlg-librarycreator');
+                dlg.classList.add('formDialog');
 
                 dlg.innerHTML = Globalize.translateDocument(template);
-                document.body.appendChild(dlg);
 
                 initEditor(dlg, options.collectionTypeOptions);
 
@@ -225,6 +243,7 @@
 
                 paths = [];
                 renderPaths(dlg);
+                initLibraryOptions(dlg);
             }
 
             xhr.send();

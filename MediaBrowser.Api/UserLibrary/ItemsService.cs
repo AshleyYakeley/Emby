@@ -1,5 +1,4 @@
-﻿using MediaBrowser.Controller.Collections;
-using MediaBrowser.Controller.Dto;
+﻿using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Localization;
@@ -101,7 +100,7 @@ namespace MediaBrowser.Api.UserLibrary
         {
             var user = !string.IsNullOrWhiteSpace(request.UserId) ? _userManager.GetUserById(request.UserId) : null;
         
-            var result = await GetItemsToSerialize(request, user).ConfigureAwait(false);
+            var result = await GetQueryResult(request, user).ConfigureAwait(false);
 
             if (result == null)
             {
@@ -135,7 +134,7 @@ namespace MediaBrowser.Api.UserLibrary
         /// <param name="request">The request.</param>
         /// <param name="user">The user.</param>
         /// <returns>IEnumerable{BaseItem}.</returns>
-        private async Task<QueryResult<BaseItem>> GetItemsToSerialize(GetItems request, User user)
+        private async Task<QueryResult<BaseItem>> GetQueryResult(GetItems request, User user)
         {
             var item = string.IsNullOrEmpty(request.ParentId) ?
                 user == null ? _libraryManager.RootFolder : user.RootFolder :
@@ -158,31 +157,9 @@ namespace MediaBrowser.Api.UserLibrary
                 folder = user == null ? _libraryManager.RootFolder : _libraryManager.GetUserRootFolder();
             }
 
-            if (!string.IsNullOrEmpty(request.Ids))
-            {
-                request.Recursive = true;
-                var query = GetItemsQuery(request, user);
-                var result = await folder.GetItems(query).ConfigureAwait(false);
-
-                if (string.IsNullOrWhiteSpace(request.SortBy))
-                {
-                    var ids = query.ItemIds.ToList();
-
-                    // Try to preserve order
-                    result.Items = result.Items.OrderBy(i => ids.IndexOf(i.Id.ToString("N"))).ToArray();
-                }
-
-                return result;
-            }
-
-            if (request.Recursive)
+            if (request.Recursive || !string.IsNullOrEmpty(request.Ids) || user == null)
             {
                 return await folder.GetItems(GetItemsQuery(request, user)).ConfigureAwait(false);
-            }
-
-            if (user == null)
-            {
-                return await folder.GetItems(GetItemsQuery(request, null)).ConfigureAwait(false);
             }
 
             var userRoot = item as UserRootFolder;
@@ -263,7 +240,8 @@ namespace MediaBrowser.Api.UserLibrary
                 ParentIndexNumber = request.ParentIndexNumber,
                 AiredDuringSeason = request.AiredDuringSeason,
                 AlbumArtistStartsWithOrGreater = request.AlbumArtistStartsWithOrGreater,
-                EnableTotalRecordCount = request.EnableTotalRecordCount
+                EnableTotalRecordCount = request.EnableTotalRecordCount,
+                ExcludeItemIds = request.GetExcludeItemIds()
             };
 
             if (!string.IsNullOrWhiteSpace(request.Ids))
@@ -292,8 +270,6 @@ namespace MediaBrowser.Api.UserLibrary
                         break;
                     case ItemFilter.IsPlayed:
                         query.IsPlayed = true;
-                        break;
-                    case ItemFilter.IsRecentlyAdded:
                         break;
                     case ItemFilter.IsResumable:
                         query.IsResumable = true;
@@ -365,6 +341,12 @@ namespace MediaBrowser.Api.UserLibrary
             if (!string.IsNullOrEmpty(request.Artists))
             {
                 query.ArtistNames = request.Artists.Split('|');
+            }
+
+            // ExcludeArtistIds
+            if (!string.IsNullOrEmpty(request.ExcludeArtistIds))
+            {
+                query.ExcludeArtistIds = request.ExcludeArtistIds.Split('|');
             }
 
             // Albums

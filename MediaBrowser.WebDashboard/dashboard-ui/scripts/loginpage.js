@@ -1,76 +1,44 @@
-﻿define([], function () {
+﻿define(['appSettings', 'dom', 'connectionManager', 'cardStyle', 'emby-checkbox'], function (appSettings, dom, connectionManager) {
 
-    function getApiClient() {
+    function authenticateUserByName(page, apiClient, username, password) {
 
-        var serverId = getParameterByName('serverid');
+        Dashboard.showLoadingMsg();
 
-        if (serverId) {
-            return ConnectionManager.getOrCreateApiClient(serverId);
+        apiClient.authenticateUserByName(username, password).then(function (result) {
 
-        } else {
-            return ApiClient;
-        }
-    }
+            var user = result.User;
 
-    var LoginPage = {
+            var serverId = getParameterByName('serverid');
 
-        showVisualForm: function (page) {
+            var newUrl;
 
-            page.querySelector('.visualLoginForm').classList.remove('hide');
-            page.querySelector('.manualLoginForm').classList.add('hide');
-        },
-
-        getLastSeenText: function (lastActivityDate) {
-
-            if (!lastActivityDate) {
-                return "";
+            if (user.Policy.IsAdministrator && !serverId) {
+                newUrl = "dashboard.html";
+            } else {
+                newUrl = "home.html";
             }
 
-            return "Last seen " + humane_date(lastActivityDate);
-        },
+            Dashboard.hideLoadingMsg();
 
-        authenticateUserByName: function (page, apiClient, username, password) {
+            Dashboard.onServerChanged(user.Id, result.AccessToken, apiClient);
+            Dashboard.navigate(newUrl);
 
-            Dashboard.showLoadingMsg();
+        }, function (response) {
 
-            apiClient.authenticateUserByName(username, password).then(function (result) {
+            page.querySelector('#txtManualName').value = '';
+            page.querySelector('#txtManualPassword').value = '';
 
-                var user = result.User;
+            Dashboard.hideLoadingMsg();
 
-                var serverId = getParameterByName('serverid');
-
-                var newUrl;
-
-                if (user.Policy.IsAdministrator && !serverId) {
-                    newUrl = "dashboard.html";
-                } else {
-                    newUrl = "home.html";
-                }
-
-                Dashboard.hideLoadingMsg();
-
-                Dashboard.onServerChanged(user.Id, result.AccessToken, apiClient);
-                Dashboard.navigate(newUrl);
-
-            }, function (response) {
-
-                page.querySelector('#txtManualName').value = '';
-                page.querySelector('#txtManualPassword').value = '';
-
-                Dashboard.hideLoadingMsg();
-
-                if (response.status == 401) {
-                    require(['toast'], function (toast) {
-                        toast(Globalize.translate('MessageInvalidUser'));
-                    });
-                } else {
-                    showServerConnectionFailure();
-                }
-            });
-
-        }
-
-    };
+            if (response.status == 401) {
+                require(['toast'], function (toast) {
+                    toast(Globalize.translate('MessageInvalidUser'));
+                });
+            } else {
+                showServerConnectionFailure();
+            }
+        });
+    }
 
     function showServerConnectionFailure() {
 
@@ -81,6 +49,8 @@
     }
 
     function showManualForm(context, showCancel, focusPassword) {
+
+        context.querySelector('.chkRememberLogin').checked = appSettings.enableAutoLogin();
 
         context.querySelector('.manualLoginForm').classList.remove('hide');
         context.querySelector('.visualLoginForm').classList.add('hide');
@@ -98,17 +68,42 @@
         }
     }
 
+    var metroColors = ["#6FBD45", "#4BB3DD", "#4164A5", "#E12026", "#800080", "#E1B222", "#008040", "#0094FF", "#FF00C7", "#FF870F", "#7F0037"];
+
+    function getRandomMetroColor() {
+
+        var index = Math.floor(Math.random() * (metroColors.length - 1));
+
+        return metroColors[index];
+    }
+
+    function getMetroColor(str) {
+
+        if (str) {
+            var character = String(str.substr(0, 1).charCodeAt());
+            var sum = 0;
+            for (var i = 0; i < character.length; i++) {
+                sum += parseInt(character.charAt(i));
+            }
+            var index = String(sum).substr(-1);
+
+            return metroColors[index];
+        } else {
+            return getRandomMetroColor();
+        }
+    }
+
     function loadUserList(context, apiClient, users) {
         var html = "";
 
         for (var i = 0, length = users.length; i < length; i++) {
             var user = users[i];
 
-            html += '<div class="card squareCard bottomPaddedCard"><div class="cardBox visualCardBox">';
+            html += '<div class="card squareCard scalableCard squareCard-scalable"><div class="cardBox cardBox-bottompadded visualCardBox">';
 
-            html += '<div class="cardScalable">';
+            html += '<div class="cardScalable visualCardBox-cardScalable">';
 
-            html += '<div class="cardPadder"></div>';
+            html += '<div class="cardPadder cardPadder-square"></div>';
             html += '<a class="cardContent" href="#" data-ajax="false" data-haspw="' + user.HasPassword + '" data-username="' + user.Name + '" data-userid="' + user.Id + '">';
 
             var imgUrl;
@@ -121,25 +116,25 @@
                     type: "Primary"
                 });
 
-                html += '<div class="cardImage" style="background-image:url(\'' + imgUrl + '\');"></div>';
+                html += '<div class="cardImageContainer coveredImage coveredImage-noScale" style="background-image:url(\'' + imgUrl + '\');"></div>';
             }
             else {
 
-                var background = LibraryBrowser.getMetroColor(user.Id);
+                var background = getMetroColor(user.Id);
 
                 imgUrl = 'css/images/logindefault.png';
 
-                html += '<div class="cardImage" style="background-image:url(\'' + imgUrl + '\');background-color:' + background + ';"></div>';
+                html += '<div class="cardImageContainer coveredImage coveredImage-noScale" style="background-image:url(\'' + imgUrl + '\');background-color:' + background + ';"></div>';
             }
 
             html += '</a>';
             html += '</div>';
 
-            html += '<div class="cardFooter">';
+            html += '<div class="cardFooter visualCardBox-cardFooter">';
             html += '<div class="cardText">' + user.Name + '</div>';
 
-            html += '<div class="cardText">';
-            var lastSeen = LoginPage.getLastSeenText(user.LastActivityDate);
+            html += '<div class="cardText cardText-secondary">';
+            var lastSeen = getLastSeenText(user.LastActivityDate);
             if (lastSeen != "") {
                 html += lastSeen;
             }
@@ -156,25 +151,39 @@
         context.querySelector('#divUsers').innerHTML = html;
     }
 
-    function parentWithClass(elem, className) {
+    function getLastSeenText(lastActivityDate) {
 
-        while (!elem.classList || !elem.classList.contains(className)) {
-            elem = elem.parentNode;
-
-            if (!elem) {
-                return null;
-            }
+        if (!lastActivityDate) {
+            return "";
         }
 
-        return elem;
+        return "Last seen " + humane_date(lastActivityDate);
     }
 
     return function (view, params) {
 
         var self = this;
 
-        view.querySelector('#divUsers').addEventListener('click', function(e) {
-            var cardContent = parentWithClass(e.target, 'cardContent');
+        function getApiClient() {
+
+            var serverId = params.serverid;
+
+            if (serverId) {
+                return connectionManager.getOrCreateApiClient(serverId);
+
+            } else {
+                return ApiClient;
+            }
+        }
+
+        function showVisualForm() {
+
+            view.querySelector('.visualLoginForm').classList.remove('hide');
+            view.querySelector('.manualLoginForm').classList.add('hide');
+        }
+
+        view.querySelector('#divUsers').addEventListener('click', function (e) {
+            var cardContent = dom.parentWithClass(e.target, 'cardContent');
 
             if (cardContent) {
 
@@ -184,10 +193,11 @@
                 var haspw = cardContent.getAttribute('data-haspw');
 
                 if (id == 'manual') {
+                    context.querySelector('#txtManualName').value = '';
                     showManualForm(context, true);
                 }
                 else if (haspw == 'false') {
-                    LoginPage.authenticateUserByName(context, getApiClient(), name, '');
+                    authenticateUserByName(context, getApiClient(), name, '');
                 } else {
 
                     context.querySelector('#txtManualName').value = name;
@@ -199,8 +209,10 @@
 
         view.querySelector('.manualLoginForm').addEventListener('submit', function (e) {
 
+            appSettings.enableAutoLogin(view.querySelector('.chkRememberLogin').checked);
+
             var apiClient = getApiClient();
-            LoginPage.authenticateUserByName(view, apiClient, view.querySelector('#txtManualName').value, view.querySelector('#txtManualPassword').value);
+            authenticateUserByName(view, apiClient, view.querySelector('#txtManualName').value, view.querySelector('#txtManualPassword').value);
 
             e.preventDefault();
             // Disable default form submission
@@ -211,11 +223,10 @@
             Dashboard.navigate('forgotpassword.html');
         });
 
-        view.querySelector('.btnCancel').addEventListener('click', function () {
-            LoginPage.showVisualForm(view);
-        });
+        view.querySelector('.btnCancel').addEventListener('click', showVisualForm);
 
         view.querySelector('.btnManual').addEventListener('click', function () {
+            view.querySelector('#txtManualName').value = '';
             showManualForm(view, true);
         });
 
@@ -227,11 +238,12 @@
 
                 if (!users.length) {
 
+                    view.querySelector('#txtManualName').value = '';
                     showManualForm(view, false, false);
 
                 } else {
 
-                    LoginPage.showVisualForm(view);
+                    showVisualForm();
                     loadUserList(view, apiClient, users);
                 }
 

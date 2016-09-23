@@ -50,13 +50,11 @@
                     <br />
                 </div>
                 <br />
-                <ul data-role="listview" class="ulForm">
-                    <li>
-                        <button is="emby-button" type="submit" class="raised submit block"><iron-icon icon="check"></iron-icon><span>${ButtonSave}</span></button>
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block"><i class="md-icon">check</i><span>${ButtonSave}</span></button>
 
-                        <button is="emby-button" type="button" class="raised cancel block btnCancel" onclick="history.back();"><iron-icon icon="close"></iron-icon><span>${ButtonCancel}</span></button>
-                    </li>
-                </ul>
+                    <button is="emby-button" type="button" class="raised button-cancel block btnCancel" onclick="history.back();"><i class="md-icon">close</i><span>${ButtonCancel}</span></button>
+                </div>
             </form>
         </div>
     </div>

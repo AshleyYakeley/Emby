@@ -1,20 +1,25 @@
-﻿define(['imageLoader', 'layoutManager', 'viewManager', 'navdrawer', 'paper-icon-button-light', 'material-icons'], function (imageLoader, layoutManager, viewManager, navdrawer) {
+﻿define(['imageLoader', 'layoutManager', 'viewManager', 'libraryBrowser', 'apphost', 'paper-icon-button-light', 'material-icons'], function (imageLoader, layoutManager, viewManager, libraryBrowser, appHost) {
 
-    var navDrawerElement = document.querySelector('.mainDrawer');
-    var navDrawerScrollContainer = navDrawerElement.querySelector('.scrollContainer');
+    var enableBottomTabs = AppInfo.isNativeApp;
+    var enableLibraryNavDrawer = !enableBottomTabs;
+
+    var navDrawerElement;
+    var navDrawerScrollContainer;
     var navDrawerInstance;
+
+    var mainDrawerButton;
 
     function renderHeader() {
 
         var html = '';
 
         html += '<div class="primaryIcons">';
-        var backIcon = browserInfo.safari ? 'chevron_left' : 'arrow_back';
+        var backIcon = browserInfo.safari ? 'chevron_left' : '&#xE5C4;';
 
-        html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonLeft headerBackButton hide autoSize"><i class="md-icon">' + backIcon + '</i></button>';
+        html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonLeft headerBackButton hide"><i class="md-icon">' + backIcon + '</i></button>';
 
-        html += '<button type="button" is="paper-icon-button-light" class="headerButton mainDrawerButton barsMenuButton headerButtonLeft autoSize"><i class="md-icon">menu</i></button>';
-        html += '<button type="button" is="paper-icon-button-light" class="headerButton headerAppsButton barsMenuButton headerButtonLeft autoSize"><i class="md-icon">menu</i></button>';
+        html += '<button type="button" is="paper-icon-button-light" class="headerButton mainDrawerButton barsMenuButton headerButtonLeft hide"><i class="md-icon">menu</i></button>';
+        html += '<button type="button" is="paper-icon-button-light" class="headerButton headerAppsButton barsMenuButton headerButtonLeft"><i class="md-icon">home</i></button>';
 
         html += '<div class="libraryMenuButtonText headerButton">' + Globalize.translate('ButtonHome') + '</div>';
 
@@ -23,9 +28,7 @@
         html += '<span class="headerSelectedPlayer"></span>';
         html += '<button is="paper-icon-button-light" class="btnCast headerButton headerButtonRight hide autoSize"><i class="md-icon">cast</i></button>';
 
-        if (AppInfo.enableSearchInTopMenu) {
-            html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonRight headerSearchButton hide autoSize"><i class="md-icon">search</i></button>';
-        }
+        html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonRight headerSearchButton hide autoSize"><i class="md-icon">search</i></button>';
 
         html += '<button is="paper-icon-button-light" class="headerButton headerButtonRight headerVoiceButton hide autoSize"><i class="md-icon">mic</i></button>';
 
@@ -40,7 +43,7 @@
         html += '</div>';
         html += '</div>';
 
-        html += '<div class="viewMenuBarTabs hiddenScrollX">';
+        html += '<div class="viewMenuBarTabs">';
         html += '</div>';
 
         var viewMenuBar = document.createElement('div');
@@ -57,12 +60,7 @@
 
     function onBackClick() {
 
-        if (Dashboard.exitOnBack()) {
-            Dashboard.exit();
-        }
-        else {
-            history.back();
-        }
+        Emby.Page.back();
     }
 
     function updateUserInHeader(user) {
@@ -140,9 +138,9 @@
                 }
             }
 
-            require(['voice/voice'], function (voice) {
+            require(['apphost'], function (apphost) {
 
-                if (voice.isSupported()) {
+                if (apphost.supports('voiceinput')) {
                     header.querySelector('.headerVoiceButton').classList.remove('hide');
                 } else {
                     header.querySelector('.headerVoiceButton').classList.add('hide');
@@ -164,8 +162,8 @@
     }
 
     function showVoice() {
-        require(['voice/voice'], function (voice) {
-            voice.startListening();
+        require(['voiceDialog'], function (voiceDialog) {
+            voiceDialog.showDialog();
         });
     }
 
@@ -179,62 +177,12 @@
 
     function onHeaderAppsButtonClick() {
 
-        require(['dialogHelper'], function (dialogHelper) {
-
-            var dlg = dialogHelper.createDialog({
-                removeOnClose: true,
-                modal: false,
-                autoFocus: false,
-                entryAnimationDuration: 160,
-                exitAnimationDuration: 160,
-                enableHistory: false
-            });
-
-            dlg.classList.add('ui-body-a');
-            dlg.classList.add('background-theme-a');
-            dlg.classList.add('adminAppsMenu');
-
-            var html = '';
-
-            html += '<div class="adminAppsMenuRow">';
-
-            html += '<a class="adminAppsButton" href="home.html">';
-            html += '<button is="paper-icon-button-light" class="autoSize"><i class="md-icon">home</i></button>';
-            html += '<div>' + Globalize.translate('ButtonHome') + '</div>';
-            html += '</a>';
-
-            html += '</div>';
-
-            html += '<div class="adminAppsMenuRow">';
-
-            html += '<a class="adminAppsButton" href="edititemmetadata.html">';
-            html += '<button is="paper-icon-button-light" class="autoSize"><i class="md-icon">mode_edit</i></button>';
-            html += '<div>' + Globalize.translate('ButtonMetadataManager') + '</div>';
-            html += '</a>';
-            html += '<a class="adminAppsButton" href="reports.html">';
-            html += '<button is="paper-icon-button-light" class="autoSize"><i class="md-icon">insert_chart</i></button>';
-            html += '<div>' + Globalize.translate('ButtonReports') + '</div>';
-            html += '</a>';
-
-            html += '</div>';
-
-            dlg.innerHTML = html;
-            document.body.appendChild(dlg);
-
-            dlg.addEventListener('click', function (e) {
-                var link = parentWithTag(e.target, 'A');
-                if (link) {
-                    dialogHelper.close(dlg);
-                }
-            });
-            dialogHelper.open(dlg);
-
-        });
+        Dashboard.navigate('home.html');
     }
 
     function bindMenuEvents() {
 
-        var mainDrawerButton = document.querySelector('.mainDrawerButton');
+        mainDrawerButton = document.querySelector('.mainDrawerButton');
 
         if (mainDrawerButton) {
             mainDrawerButton.addEventListener('click', toggleMainDrawer);
@@ -275,7 +223,7 @@
 
     function getItemHref(item, context) {
 
-        return LibraryBrowser.getHref(item, context);
+        return libraryBrowser.getHref(item, context);
     }
 
     var requiresUserRefresh = true;
@@ -324,7 +272,7 @@
         var homeHref = window.ApiClient ? 'home.html' : 'selectserver.html?showuser=1';
 
         html += '<a class="lnkMediaFolder sidebarLink" href="' + homeHref + '" onclick="return LibraryMenu.onLinkClicked(event, this);">';
-        html += '<div style="background-image:url(\'css/images/mblogoicon.png\');width:' + 28 + 'px;height:' + 28 + 'px;background-size:contain;background-repeat:no-repeat;background-position:center center;border-radius:1000px;vertical-align:middle;margin:0 1.85em 0 1.55em;display:inline-block;"></div>';
+        html += '<div style="background-image:url(\'css/images/mblogoicon.png\');width:' + 28 + 'px;height:' + 28 + 'px;background-size:contain;background-repeat:no-repeat;background-position:center center;border-radius:1000px;vertical-align:middle;margin:0 1.25em 0 1.55em;display:inline-block;"></div>';
         html += Globalize.translate('ButtonHome');
         html += '</a>';
 
@@ -346,7 +294,7 @@
             html += '</div>';
 
             html += '<a class="sidebarLink lnkMediaFolder lnkManageServer" data-itemid="dashboard" href="#"><i class="md-icon sidebarLinkIcon">dashboard</i><span class="sidebarLinkText">' + Globalize.translate('ButtonManageServer') + '</span></a>';
-            html += '<a class="sidebarLink lnkMediaFolder editorViewMenu" data-itemid="editor" onclick="return LibraryMenu.onLinkClicked(event, this);" href="edititemmetadata.html"><i class="md-icon sidebarLinkIcon">mode_edit</i><span class="sidebarLinkText">' + Globalize.translate('ButtonMetadataManager') + '</span></a>';
+            html += '<a class="sidebarLink lnkMediaFolder editorViewMenu" data-itemid="editor" onclick="return LibraryMenu.onLinkClicked(event, this);" href="edititemmetadata.html"><i class="md-icon sidebarLinkIcon">mode_edit</i><span class="sidebarLinkText">' + Globalize.translate('MetadataManager') + '</span></a>';
 
             if (!browserInfo.mobile) {
                 html += '<a class="sidebarLink lnkMediaFolder" data-itemid="reports" onclick="return LibraryMenu.onLinkClicked(event, this);" href="reports.html"><i class="md-icon sidebarLinkIcon">insert_chart</i><span class="sidebarLinkText">' + Globalize.translate('ButtonReports') + '</span></a>';
@@ -362,7 +310,9 @@
             html += '<a class="sidebarLink lnkMediaFolder lnkMySettings" onclick="return LibraryMenu.onLinkClicked(event, this);" href="mypreferencesmenu.html?userId=' + user.localUser.Id + '"><i class="md-icon sidebarLinkIcon">settings</i><span class="sidebarLinkText">' + Globalize.translate('ButtonSettings') + '</span></a>';
         }
 
-        html += '<a class="sidebarLink lnkMediaFolder lnkMySync" data-itemid="mysync" onclick="return LibraryMenu.onLinkClicked(event, this);" href="mysync.html"><i class="md-icon sidebarLinkIcon">sync</i><span class="sidebarLinkText">' + Globalize.translate('ButtonSync') + '</span></a>';
+        html += '<a class="sidebarLink lnkMediaFolder lnkManageOffline" data-itemid="manageoffline" onclick="return LibraryMenu.onLinkClicked(event, this);" href="mysync.html?mode=offline"><i class="md-icon sidebarLinkIcon">file_download</i><span class="sidebarLinkText">' + Globalize.translate('ManageOfflineDownloads') + '</span></a>';
+
+        html += '<a class="sidebarLink lnkMediaFolder lnkSyncToOtherDevices" data-itemid="syncotherdevices" onclick="return LibraryMenu.onLinkClicked(event, this);" href="mysync.html"><i class="md-icon sidebarLinkIcon">sync</i><span class="sidebarLinkText">' + Globalize.translate('SyncToOtherDevices') + '</span></a>';
 
         if (Dashboard.isConnectMode()) {
             html += '<a class="sidebarLink lnkMediaFolder" data-itemid="selectserver" onclick="return LibraryMenu.onLinkClicked(event, this);" href="selectserver.html?showuser=1"><i class="md-icon sidebarLinkIcon">wifi</i><span class="sidebarLinkText">' + Globalize.translate('ButtonSelectServer') + '</span></a>';
@@ -384,24 +334,13 @@
 
     function refreshDashboardInfoInDrawer(page, user) {
 
-        if (!navDrawerScrollContainer.querySelector('.adminDrawerLogo')) {
-            createDashboardMenu(page);
-        } else {
-            updateDashboardMenuSelectedItem();
-        }
-    }
-
-    function parentWithTag(elem, tagName) {
-
-        while (elem.tagName != tagName) {
-            elem = elem.parentNode;
-
-            if (!elem) {
-                return null;
+        loadNavDrawer().then(function () {
+            if (!navDrawerScrollContainer.querySelector('.adminDrawerLogo')) {
+                createDashboardMenu(page);
+            } else {
+                updateDashboardMenuSelectedItem();
             }
-        }
-
-        return elem;
+        });
     }
 
     function updateDashboardMenuSelectedItem() {
@@ -427,9 +366,7 @@
                 var secondaryTitle = (link.innerText || link.textContent).trim();
                 title += secondaryTitle;
 
-                var documentTitle = secondaryTitle;
-
-                Dashboard.setPageTitle(title, documentTitle);
+                LibraryMenu.setTitle(title);
 
             } else {
                 link.classList.remove('selectedSidebarLink');
@@ -510,15 +447,22 @@
 
         if (!user) {
 
-            showBySelector('.lnkMySync', false);
+            showBySelector('.lnkManageOffline', false);
+            showBySelector('.lnkSyncToOtherDevices', false);
             showBySelector('.userMenuOptions', false);
             return;
         }
 
         if (user.Policy.EnableSync) {
-            showBySelector('.lnkMySync', true);
+            showBySelector('.lnkSyncToOtherDevices', true);
         } else {
-            showBySelector('.lnkMySync', false);
+            showBySelector('.lnkSyncToOtherDevices', false);
+        }
+
+        if (user.Policy.EnableSync && appHost.supports('sync')) {
+            showBySelector('.lnkManageOffline', true);
+        } else {
+            showBySelector('.lnkManageOffline', false);
         }
 
         var userId = Dashboard.getCurrentUserId();
@@ -708,25 +652,30 @@
                 viewMenuBarTabs.classList.remove('hide');
             }
 
-            if (LibraryMenu.tabType != type) {
+            require(['emby-tabs', 'emby-button'], function () {
+                if (LibraryMenu.tabType != type) {
 
-                require(['paper-tabs'], function () {
+                    var index = 0;
 
-                    var noInk = browserInfo.animate ? '' : ' noink';
+                    viewMenuBarTabs.innerHTML = '<div is="emby-tabs"><div class="emby-tabs-slider">' + builder().map(function (t) {
 
-                    viewMenuBarTabs.innerHTML = '<paper-tabs selected="' + selectedIndex + '" hidescrollbuttons ' + noInk + '>' + builder().map(function (t) {
+                        var tabClass = selectedIndex == index ? 'emby-tab-button emby-tab-button-active' : 'emby-tab-button';
 
-                        return '<paper-tab link><a class="clearLink paperTabLink" href="' + t.href + '"><div>' + t.name + '</div></a></paper-tab>';
+                        var tabHtml = '<button onclick="Dashboard.navigate(this.getAttribute(\'data-href\'));" data-href="' + t.href + '" is="emby-button" class="' + tabClass + '" data-index="' + index + '"><div class="emby-button-foreground">' + t.name + '</div></button>';
+                        index++;
+                        return tabHtml;
 
-                    }).join('') + '</paper-tabs>';
+                    }).join('') + '</div></div>';
+
                     document.body.classList.add('withTallToolbar');
                     LibraryMenu.tabType = type;
-                });
-                return;
-            }
+                    return;
+                }
 
-            viewMenuBarTabs.querySelector('paper-tabs').selected = selectedIndex;
-            LibraryMenu.tabType = type;
+                viewMenuBarTabs.querySelector('[is="emby-tabs"]').selectedIndex(selectedIndex);
+
+                LibraryMenu.tabType = type;
+            });
         },
 
         setTitle: function (title) {
@@ -738,7 +687,7 @@
                 var helpUrl = page.getAttribute('data-helpurl');
 
                 if (helpUrl) {
-                    html += '<a href="' + helpUrl + '" target="_blank" class="clearLink" style="margin-left:2em;" title="' + Globalize.translate('ButtonHelp') + '"><button is="emby-button" type="button" class="accent" style="margin:0;font-weight:normal;font-size:14px;padding:.25em;display:block;align-items:center;"><i class="md-icon">info</i><span>' + Globalize.translate('ButtonHelp') + '</span></button></a>';
+                    html += '<a href="' + helpUrl + '" target="_blank" class="clearLink" style="margin-left:2em;" title="' + Globalize.translate('ButtonHelp') + '"><button is="emby-button" type="button" class="button-accent-flat" style="margin:0;font-weight:normal;font-size:14px;padding:.25em;display:block;align-items:center;"><i class="md-icon">info</i><span>' + Globalize.translate('ButtonHelp') + '</span></button></a>';
                 }
             }
 
@@ -746,33 +695,10 @@
             if (libraryMenuButtonText) {
                 libraryMenuButtonText.innerHTML = html;
             }
+
+            document.title = title || 'Emby';
         },
 
-        setBackButtonVisible: function (visible) {
-
-            var backButton = document.querySelector('.headerBackButton');
-
-            if (backButton) {
-                if (visible) {
-                    backButton.classList.remove('hide');
-                } else {
-                    backButton.classList.add('hide');
-                }
-            }
-        },
-
-        setMenuButtonVisible: function (visible) {
-
-            var mainDrawerButton = document.querySelector('.mainDrawerButton');
-
-            if (mainDrawerButton) {
-                if (!visible && browserInfo.mobile) {
-                    mainDrawerButton.classList.remove('hide');
-                } else {
-                    mainDrawerButton.classList.remove('hide');
-                }
-            }
-        },
         setTransparentMenu: function (transparent) {
 
             var viewMenuBar = document.querySelector('.viewMenuBar');
@@ -846,7 +772,12 @@
             else if (isReportsPage && itemId == 'reports') {
                 lnkMediaFolder.classList.add('selectedMediaFolder');
             }
-            else if (isMySyncPage && itemId == 'mysync') {
+            else if (isMySyncPage && itemId == 'manageoffline' && window.location.href.toString().indexOf('mode=offline') != -1) {
+
+                lnkMediaFolder.classList.add('selectedMediaFolder');
+            }
+            else if (isMySyncPage && itemId == 'syncotherdevices' && window.location.href.toString().indexOf('mode=offline') == -1) {
+
                 lnkMediaFolder.classList.add('selectedMediaFolder');
             }
             else if (id && itemId == id) {
@@ -855,33 +786,6 @@
             else {
                 lnkMediaFolder.classList.remove('selectedMediaFolder');
             }
-        }
-    }
-
-    function updateTabLinks(page) {
-
-        var elems = page.querySelectorAll('.scopedLibraryViewNav a');
-
-        var id = page.classList.contains('liveTvPage') || page.classList.contains('channelsPage') || page.classList.contains('metadataEditorPage') || page.classList.contains('reportsPage') || page.classList.contains('mySyncPage') || page.classList.contains('allLibraryPage') ?
-            '' :
-            getTopParentId() || '';
-
-        if (!id) {
-            return;
-        }
-
-        for (i = 0, length = elems.length; i < length; i++) {
-
-            var lnk = elems[i];
-            var src = lnk.href;
-
-            if (src.indexOf('#') != -1) {
-                continue;
-            }
-
-            src = replaceQueryString(src, 'topParentId', id);
-
-            lnk.href = src;
         }
     }
 
@@ -921,21 +825,6 @@
         }
     }
 
-    pageClassOn('pageinit', 'page', function () {
-
-        var page = this;
-
-        var isLibraryPage = page.classList.contains('libraryPage');
-
-        if (isLibraryPage) {
-
-            var navs = page.querySelectorAll('.libraryViewNav');
-            for (var i = 0, length = navs.length; i < length; i++) {
-                initHeadRoom(navs[i]);
-            }
-        }
-    });
-
     pageClassOn('pagebeforeshow', 'page', function (e) {
 
         var page = this;
@@ -952,21 +841,28 @@
         var isDashboardPage = page.classList.contains('type-interior');
 
         if (isDashboardPage) {
+            if (mainDrawerButton) {
+                mainDrawerButton.classList.remove('hide');
+            }
             refreshDashboardInfoInDrawer(page);
-            //mainDrawerPanel.forceNarrow = false;
         } else {
 
-            if (navDrawerElement.classList.contains('adminDrawer')) {
-                refreshLibraryDrawer();
+            if (mainDrawerButton) {
+                if (enableLibraryNavDrawer) {
+                    mainDrawerButton.classList.remove('hide');
+                } else {
+                    mainDrawerButton.classList.add('hide');
+                }
             }
 
-            //mainDrawerPanel.forceNarrow = true;
+            if ((navDrawerElement && navDrawerElement.classList.contains('adminDrawer')) || (!navDrawerElement && enableLibraryNavDrawer)) {
+                refreshLibraryDrawer();
+            }
         }
 
         setDrawerClass(page);
 
         updateViewMenuBar(page);
-        updateTabLinks(page);
 
         if (!e.detail.isRestored) {
             // Scroll back up so in case vertical scroll was messed with
@@ -999,15 +895,8 @@
     });
 
     function updateTitle(page) {
-        var title = page.getAttribute('data-title') || page.getAttribute('data-contextname');
 
-        if (!title) {
-            var titleKey = getParameterByName('titlekey');
-
-            if (titleKey) {
-                title = Globalize.translate(titleKey);
-            }
-        }
+        var title = page.getAttribute('data-title');
 
         if (title) {
             LibraryMenu.setTitle(title);
@@ -1016,18 +905,10 @@
 
     function updateBackButton(page) {
 
-        var canGoBack = !page.classList.contains('homePage') && history.length > 0;
-
         var backButton = document.querySelector('.headerBackButton');
 
-        var showBackButton = AppInfo.enableBackButton;
-
-        if (!showBackButton) {
-            showBackButton = page.getAttribute('data-backbutton') == 'true';
-        }
-
         if (backButton) {
-            if (canGoBack && showBackButton) {
+            if (page.getAttribute('data-backbutton') == 'true' && Emby.Page.canGoBack()) {
                 backButton.classList.remove('hide');
             } else {
                 backButton.classList.add('hide');
@@ -1037,22 +918,9 @@
 
     function initHeadRoom(elem) {
 
-        if (!AppInfo.enableHeadRoom) {
-            return;
-        }
+        require(["headroom-window"], function (headroom) {
 
-        require(["headroom"], function () {
-
-            // construct an instance of Headroom, passing the element
-            var headroom = new Headroom(elem, {
-                // or scroll tolerance per direction
-                tolerance: {
-                    down: 40,
-                    up: 0
-                }
-            });
-            // initialise
-            headroom.init();
+            headroom.add(elem);
         });
     }
 
@@ -1079,24 +947,34 @@
             admin = true;
         }
 
-        if (admin) {
-            navDrawerElement.classList.add('adminDrawer');
-            navDrawerElement.classList.remove('darkDrawer');
-        } else {
-            navDrawerElement.classList.add('darkDrawer');
-            navDrawerElement.classList.remove('adminDrawer');
+        var enableNavDrawer = admin || enableLibraryNavDrawer;
+        if (enableNavDrawer) {
+            loadNavDrawer().then(function () {
+                if (admin) {
+                    navDrawerElement.classList.add('adminDrawer');
+                    navDrawerElement.classList.remove('darkDrawer');
+                } else {
+                    navDrawerElement.classList.add('darkDrawer');
+                    navDrawerElement.classList.remove('adminDrawer');
+                }
+            });
         }
     }
 
     function refreshLibraryDrawer(user) {
 
-        var promise = user ? Promise.resolve(user) : ConnectionManager.user(window.ApiClient);
+        if (!enableLibraryNavDrawer) {
+            return;
+        }
 
-        promise.then(function (user) {
-            refreshLibraryInfoInDrawer(user);
+        loadNavDrawer().then(function () {
+            var promise = user ? Promise.resolve(user) : ConnectionManager.user(window.ApiClient);
 
-            document.dispatchEvent(new CustomEvent("libraryMenuCreated", {}));
-            updateLibraryMenu(user.localUser);
+            promise.then(function (user) {
+                refreshLibraryInfoInDrawer(user);
+
+                updateLibraryMenu(user.localUser);
+            });
         });
     }
 
@@ -1105,8 +983,8 @@
         var drawerWidth = screen.availWidth - 50;
         // At least 240
         drawerWidth = Math.max(drawerWidth, 240);
-        // But not exceeding 270
-        drawerWidth = Math.min(drawerWidth, 270);
+        // But not exceeding 280
+        drawerWidth = Math.min(drawerWidth, 280);
 
         var disableEdgeSwipe = false;
 
@@ -1121,13 +999,29 @@
             target: navDrawerElement,
             onChange: onMainDrawerSelect,
             width: drawerWidth,
-            disableEdgeSwipe: disableEdgeSwipe,
-            edgeSwipeElement: document.querySelector('.mainDrawerPanelContent')
+            disableEdgeSwipe: disableEdgeSwipe
         };
     }
 
-    navDrawerInstance = new navdrawer(getNavDrawerOptions());
-    navDrawerElement.classList.remove('hide');
+    function loadNavDrawer() {
+
+        if (navDrawerInstance) {
+            return Promise.resolve(navDrawerInstance);
+        }
+
+        return new Promise(function (resolve, reject) {
+
+            navDrawerElement = document.querySelector('.mainDrawer');
+            navDrawerScrollContainer = navDrawerElement.querySelector('.scrollContainer');
+
+            require(['navdrawer'], function (navdrawer) {
+                navDrawerInstance = new navdrawer(getNavDrawerOptions());
+                navDrawerElement.classList.remove('hide');
+                resolve(navDrawerInstance);
+            });
+        });
+    }
+
     renderHeader();
 
     Events.on(ConnectionManager, 'apiclientcreated', function (e, apiClient) {
@@ -1147,4 +1041,11 @@
 
     setDrawerClass();
 
+    if (enableBottomTabs) {
+        require(['appfooter-shared', 'dockedtabs'], function (footer, dockedtabs) {
+            new dockedtabs({
+                appFooter: footer
+            });
+        });
+    }
 });

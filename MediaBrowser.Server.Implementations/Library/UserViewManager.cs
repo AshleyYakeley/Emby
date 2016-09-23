@@ -120,8 +120,8 @@ namespace MediaBrowser.Server.Implementations.Library
                 }, cancellationToken).ConfigureAwait(false);
 
                 var channels = channelResult.Items;
-
-                if (user.Configuration.EnableChannelView && channels.Length > 0)
+                
+                if (_config.Configuration.EnableChannelView && channels.Length > 0)
                 {
                     list.Add(await _channelManager.GetInternalChannelFolder(cancellationToken).ConfigureAwait(false));
                 }
@@ -283,7 +283,7 @@ namespace MediaBrowser.Server.Implementations.Library
                 ExcludeItemTypes = excludeItemTypes,
                 ExcludeLocationTypes = new[] { LocationType.Virtual },
                 Limit = limit * 5,
-                ExcludeSourceTypes = parentIds.Length == 0 ? new[] { SourceType.Channel, SourceType.LiveTV } : new SourceType[] { },
+                SourceTypes = parentIds.Length == 0 ? new[] { SourceType.Library } : new SourceType[] { },
                 IsPlayed = request.IsPlayed
 
             }, parentIds);

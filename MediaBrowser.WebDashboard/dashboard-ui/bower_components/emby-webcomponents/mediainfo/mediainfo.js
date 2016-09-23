@@ -1,4 +1,4 @@
-define(['datetime', 'globalize', 'embyRouter', 'material-icons', 'css!./mediainfo.css'], function (datetime, globalize, embyRouter) {
+define(['datetime', 'globalize', 'embyRouter', 'itemHelper', 'material-icons', 'css!./mediainfo.css'], function (datetime, globalize, embyRouter, itemHelper) {
 
     function getProgramInfoHtml(item, options) {
         var html = '';
@@ -20,7 +20,7 @@ define(['datetime', 'globalize', 'embyRouter', 'material-icons', 'css!./mediainf
             try {
                 date = datetime.parseISO8601Date(item.StartDate);
 
-                text = date.toLocaleDateString();
+                text = datetime.toLocaleDateString(date);
 
                 text += ', ' + datetime.getDisplayTime(date);
 
@@ -42,12 +42,12 @@ define(['datetime', 'globalize', 'embyRouter', 'material-icons', 'css!./mediainf
 
         if (item.SeriesTimerId) {
             miscInfo.push({
-                html: '<i class="md-icon mediaInfoItem timerIcon">fiber-smart-record</i>'
+                html: '<i class="md-icon mediaInfoItem mediaInfoTimerIcon mediaInfoIconItem">&#xE062;</i>'
             });
         }
         else if (item.TimerId) {
             miscInfo.push({
-                html: '<i class="md-icon mediaInfoItem timerIcon">fiber-manual-record</i>'
+                html: '<i class="md-icon mediaInfoItem mediaInfoTimerIcon mediaInfoIconItem">&#xE061;</i>'
             });
         }
 
@@ -98,7 +98,7 @@ define(['datetime', 'globalize', 'embyRouter', 'material-icons', 'css!./mediainf
                 try {
                     date = datetime.parseISO8601Date(item.PremiereDate);
 
-                    text = date.toLocaleDateString();
+                    text = datetime.toLocaleDateString(date);
                     miscInfo.push(text);
                 }
                 catch (e) {
@@ -112,7 +112,7 @@ define(['datetime', 'globalize', 'embyRouter', 'material-icons', 'css!./mediainf
             try {
                 date = datetime.parseISO8601Date(item.StartDate);
 
-                text = date.toLocaleDateString();
+                text = datetime.toLocaleDateString(date);
                 miscInfo.push(text);
 
                 if (item.Type != "Recording") {
@@ -125,7 +125,7 @@ define(['datetime', 'globalize', 'embyRouter', 'material-icons', 'css!./mediainf
             }
         }
 
-        if (item.ProductionYear && item.Type == "Series") {
+        if (options.year !== false && item.ProductionYear && item.Type == "Series") {
 
             if (item.Status == "Continuing") {
                 miscInfo.push(globalize.translate('sharedcomponents#ValueSeriesYearToPresent', item.ProductionYear));
@@ -159,12 +159,12 @@ define(['datetime', 'globalize', 'embyRouter', 'material-icons', 'css!./mediainf
 
             if (item.IsLive) {
                 miscInfo.push({
-                    html: '<div class="mediaInfoProgramAttribute mediaInfoItem">' + globalize.translate('sharedcomponents#AttributeLive') + '</div>'
+                    html: '<div class="mediaInfoProgramAttribute mediaInfoItem">' + globalize.translate('sharedcomponents#Live') + '</div>'
                 });
             }
             else if (item.IsPremiere) {
                 miscInfo.push({
-                    html: '<div class="mediaInfoProgramAttribute mediaInfoItem">' + globalize.translate('sharedcomponents#AttributePremiere') + '</div>'
+                    html: '<div class="mediaInfoProgramAttribute mediaInfoItem">' + globalize.translate('sharedcomponents#Premiere') + '</div>'
                 });
             }
             else if (item.IsSeries && !item.IsRepeat) {
@@ -172,12 +172,21 @@ define(['datetime', 'globalize', 'embyRouter', 'material-icons', 'css!./mediainf
                     html: '<div class="mediaInfoProgramAttribute mediaInfoItem">' + globalize.translate('sharedcomponents#AttributeNew') + '</div>'
                 });
             }
+            else if (item.IsSeries && item.IsRepeat) {
+                miscInfo.push({
+                    html: '<div class="mediaInfoProgramAttribute mediaInfoItem">' + globalize.translate('sharedcomponents#Repeat') + '</div>'
+                });
+            }
 
-            if (item.PremiereDate) {
+            if (item.IsSeries && item.EpisodeTitle && options.episodeTitle !== false) {
+                miscInfo.push(itemHelper.getDisplayName(item));
+            }
+
+            else if (item.PremiereDate) {
 
                 try {
                     date = datetime.parseISO8601Date(item.PremiereDate);
-                    text = globalize.translate('sharedcomponents#OriginalAirDateValue', date.toLocaleDateString());
+                    text = globalize.translate('sharedcomponents#OriginalAirDateValue', datetime.toLocaleDateString(date));
                     miscInfo.push(text);
                 }
                 catch (e) {
@@ -237,6 +246,10 @@ define(['datetime', 'globalize', 'embyRouter', 'material-icons', 'css!./mediainf
             miscInfo.push(item.Width + "x" + item.Height);
         }
 
+        if (options.container !== false && item.Type == 'Audio' && item.Container) {
+            miscInfo.push(item.Container);
+        }
+
         html += miscInfo.map(function (m) {
             return getMediaInfoItem(m);
         }).join('');
@@ -244,15 +257,15 @@ define(['datetime', 'globalize', 'embyRouter', 'material-icons', 'css!./mediainf
         html += getStarIconsHtml(item);
 
         if (item.HasSubtitles && options.subtitles !== false) {
-            html += '<i class="md-icon mediaInfoItem closedCaptionIcon">closed_caption</i>';
+            html += '<i class="md-icon mediaInfoItem closedCaptionIcon mediaInfoIconItem">&#xE01C;</i>';
         }
 
         if (item.CriticRating && options.criticRating !== false) {
 
             if (item.CriticRating >= 60) {
-                html += '<div class="mediaInfoItem criticRating criticRatingFresh">' + item.CriticRating + '</div>';
+                html += '<div class="mediaInfoItem mediaInfoCriticRating mediaInfoCriticRatingFresh">' + item.CriticRating + '</div>';
             } else {
-                html += '<div class="mediaInfoItem criticRating criticRatingRotten">' + item.CriticRating + '</div>';
+                html += '<div class="mediaInfoItem mediaInfoCriticRating mediaInfoCriticRatingRotten">' + item.CriticRating + '</div>';
             }
         }
 
@@ -321,7 +334,7 @@ define(['datetime', 'globalize', 'embyRouter', 'material-icons', 'css!./mediainf
         if (rating) {
             html += '<div class="starRatingContainer mediaInfoItem">';
 
-            html += '<i class="md-icon">star</i>';
+            html += '<i class="md-icon starIcon">&#xE838;</i>';
             html += rating;
             html += '</div>';
         }
@@ -384,58 +397,11 @@ define(['datetime', 'globalize', 'embyRouter', 'material-icons', 'css!./mediainf
         return false;
     }
 
-    function getDisplayName(item, options) {
-
-        if (!item) {
-            throw new Error("null item passed into getDisplayName");
-        }
-
-        options = options || {};
-
-        var name = item.EpisodeTitle || item.Name || '';
-
-        if (item.Type == "TvChannel") {
-
-            if (item.Number) {
-                return item.Number + ' ' + name;
-            }
-            return name;
-        }
-        if (options.isInlineSpecial && item.Type == "Episode" && item.ParentIndexNumber == 0) {
-
-            name = globalize.translate('sharedcomponents#ValueSpecialEpisodeName', name);
-
-        } else if (item.Type == "Episode" && item.IndexNumber != null && item.ParentIndexNumber != null) {
-
-            var displayIndexNumber = item.IndexNumber;
-
-            var number = "E" + displayIndexNumber;
-
-            if (options.includeParentInfo !== false) {
-                number = "S" + item.ParentIndexNumber + ", " + number;
-            }
-
-            if (item.IndexNumberEnd) {
-
-                displayIndexNumber = item.IndexNumberEnd;
-                number += "-" + displayIndexNumber;
-            }
-
-            name = number + " - " + name;
-
-        }
-
-        return name;
-    }
-
     function getPrimaryMediaInfoHtml(item, options) {
 
         options = options || {};
         if (options.interactive == null) {
             options.interactive = false;
-        }
-        if (item.Type == 'Program') {
-            return getProgramInfoHtml(item, options);
         }
 
         return getMediaInfoHtml(item, options);
@@ -448,7 +414,7 @@ define(['datetime', 'globalize', 'embyRouter', 'material-icons', 'css!./mediainf
             options.interactive = false;
         }
         if (item.Type == 'Program') {
-            return getMediaInfoHtml(item, options);
+            return getProgramInfoHtml(item, options);
         }
 
         return '';

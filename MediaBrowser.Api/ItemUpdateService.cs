@@ -70,12 +70,13 @@ namespace MediaBrowser.Api
                 Cultures = _localizationManager.GetCultures().ToList()
             };
 
-            if (!item.IsVirtualItem && !(item is ICollectionFolder) && !(item is UserView) && !(item is AggregateFolder) && !(item is LiveTvChannel) && !(item is IItemByName))
+            if (!item.IsVirtualItem && !(item is ICollectionFolder) && !(item is UserView) && !(item is AggregateFolder) && !(item is LiveTvChannel) && !(item is IItemByName) &&
+                item.SourceType == SourceType.Library)
             {
                 var inheritedContentType = _libraryManager.GetInheritedContentType(item);
                 var configuredContentType = _libraryManager.GetConfiguredContentType(item);
 
-                if (string.IsNullOrWhiteSpace(inheritedContentType) || string.Equals(inheritedContentType, CollectionType.TvShows, StringComparison.OrdinalIgnoreCase) || !string.IsNullOrWhiteSpace(configuredContentType))
+                if (string.IsNullOrWhiteSpace(inheritedContentType) || !string.IsNullOrWhiteSpace(configuredContentType))
                 {
                     info.ContentTypeOptions = GetContentTypeOptions(true);
                     info.ContentType = configuredContentType;
@@ -304,7 +305,7 @@ namespace MediaBrowser.Api
             item.EndDate = request.EndDate.HasValue ? NormalizeDateTime(request.EndDate.Value) : (DateTime?)null;
             item.PremiereDate = request.PremiereDate.HasValue ? NormalizeDateTime(request.PremiereDate.Value) : (DateTime?)null;
             item.ProductionYear = request.ProductionYear;
-            item.OfficialRating = request.OfficialRating;
+            item.OfficialRating = string.IsNullOrWhiteSpace(request.OfficialRating) ? null : request.OfficialRating;
             item.CustomRating = request.CustomRating;
 
             SetProductionLocations(item, request);

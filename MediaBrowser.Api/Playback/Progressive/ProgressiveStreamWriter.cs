@@ -1,81 +1,76 @@
 ﻿using MediaBrowser.Model.Logging;
-using ServiceStack.Web;
 using System;
-using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using CommonIO;
+using MediaBrowser.Controller.Net;
+using System.Collections.Generic;
+using ServiceStack.Web;
 
 namespace MediaBrowser.Api.Playback.Progressive
 {
-    public class ProgressiveStreamWriter : IStreamWriter, IHasOptions
+    public class ProgressiveFileCopier : IAsyncStreamSource, IHasOptions
     {
-        private string Path { get; set; }
-        private ILogger Logger { get; set; }
         private readonly IFileSystem _fileSystem;
         private readonly TranscodingJob _job;
+        private readonly ILogger _logger;
+        private readonly string _path;
+        private readonly CancellationToken _cancellationToken;
+        private readonly Dictionary<string, string> _outputHeaders;
 
-        /// <summary>
-        /// The _options
-        /// </summary>
-        private readonly IDictionary<string, string> _options = new Dictionary<string, string>();
-        /// <summary>
-        /// Gets the options.
-        /// </summary>
-        /// <value>The options.</value>
+        // 256k
+        private const int BufferSize = 81920;
+
+        private long _bytesWritten = 0;
+
+        public ProgressiveFileCopier(IFileSystem fileSystem, string path, Dictionary<string, string> outputHeaders, TranscodingJob job, ILogger logger, CancellationToken cancellationToken)
+        {
+            _fileSystem = fileSystem;
+            _path = path;
+            _outputHeaders = outputHeaders;
+            _job = job;
+            _logger = logger;
+            _cancellationToken = cancellationToken;
+        }
+
         public IDictionary<string, string> Options
         {
-            get { return _options; }
+            get
+            {
+                return _outputHeaders;
+            }
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ProgressiveStreamWriter" /> class.
-        /// </summary>
-        /// <param name="path">The path.</param>
-        /// <param name="logger">The logger.</param>
-        /// <param name="fileSystem">The file system.</param>
-        public ProgressiveStreamWriter(string path, ILogger logger, IFileSystem fileSystem, TranscodingJob job)
-        {
-            Path = path;
-            Logger = logger;
-            _fileSystem = fileSystem;
-            _job = job;
-        }
-
-        /// <summary>
-        /// Writes to.
-        /// </summary>
-        /// <param name="responseStream">The response stream.</param>
-        public void WriteTo(Stream responseStream)
-        {
-            WriteToInternal(responseStream);
-        }
-
-        /// <summary>
-        /// Writes to async.
-        /// </summary>
-        /// <param name="responseStream">The response stream.</param>
-        /// <returns>Task.</returns>
-        private void WriteToInternal(Stream responseStream)
+        public async Task WriteToAsync(Stream outputStream)
         {
             try
             {
-                var task = new ProgressiveFileCopier(_fileSystem, _job, Logger).StreamFile(Path, responseStream);
+                var eofCount = 0;
 
-                Task.WaitAll(task);
-            }
-            catch (IOException)
-            {
-                // These error are always the same so don't dump the whole stack trace
-                Logger.Error("Error streaming media. The client has most likely disconnected or transcoding has failed.");
+                using (var fs = _fileSystem.GetFileStream(_path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, true))
+                {
+                    while (eofCount < 15)
+                    {
+                        var bytesRead = await CopyToAsyncInternal(fs, outputStream, BufferSize, _cancellationToken).ConfigureAwait(false);
 
-                throw;
-            }
-            catch (Exception ex)
-            {
-                Logger.ErrorException("Error streaming media. The client has most likely disconnected or transcoding has failed.", ex);
+                        //var position = fs.Position;
+                        //_logger.Debug("Streamed {0} bytes to position {1} from file {2}", bytesRead, position, path);
 
-                throw;
+                        if (bytesRead == 0)
+                        {
+                            if (_job == null || _job.HasExited)
+                            {
+                                eofCount++;
+                            }
+                            await Task.Delay(100, _cancellationToken).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            eofCount = 0;
+                        }
+                    }
+                }
             }
             finally
             {
@@ -85,100 +80,27 @@ namespace MediaBrowser.Api.Playback.Progressive
                 }
             }
         }
-    }
 
-    public class ProgressiveFileCopier
-    {
-        private readonly IFileSystem _fileSystem;
-        private readonly TranscodingJob _job;
-        private readonly ILogger _logger;
-
-        // 256k
-        private const int BufferSize = 262144;
-
-        private long _bytesWritten = 0;
-
-        public ProgressiveFileCopier(IFileSystem fileSystem, TranscodingJob job, ILogger logger)
+        private async Task<int> CopyToAsyncInternal(Stream source, Stream destination, Int32 bufferSize, CancellationToken cancellationToken)
         {
-            _fileSystem = fileSystem;
-            _job = job;
-            _logger = logger;
-        }
+            byte[] buffer = new byte[bufferSize];
+            int bytesRead;
+            int totalBytesRead = 0;
 
-        public async Task StreamFile(string path, Stream outputStream)
-        {
-            var eofCount = 0;
-            long position = 0;
-
-            using (var fs = _fileSystem.GetFileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, false))
+            while ((bytesRead = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) != 0)
             {
-                while (eofCount < 15)
-                {
-                    CopyToInternal(fs, outputStream, BufferSize);
+                await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
 
-                    var fsPosition = fs.Position;
-
-                    var bytesRead = fsPosition - position;
-
-                    //Logger.Debug("Streamed {0} bytes from file {1}", bytesRead, path);
-
-                    if (bytesRead == 0)
-                    {
-                        if (_job == null || _job.HasExited)
-                        {
-                            eofCount++;
-                        }
-                        await Task.Delay(100).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        eofCount = 0;
-                    }
-
-                    position = fsPosition;
-                }
-            }
-        }
-
-        private void CopyToInternal(Stream source, Stream destination, int bufferSize)
-        {
-            var array = new byte[bufferSize];
-            int count;
-            while ((count = source.Read(array, 0, array.Length)) != 0)
-            {
-                //if (_job != null)
-                //{
-                //    var didPause = false;
-                //    var totalPauseTime = 0;
-
-                //    if (_job.IsUserPaused)
-                //    {
-                //        _logger.Debug("Pausing writing to network stream while user has paused playback.");
-
-                //        while (_job.IsUserPaused && totalPauseTime < 30000)
-                //        {
-                //            didPause = true;
-                //            var pauseTime = 500;
-                //            totalPauseTime += pauseTime;
-                //            await Task.Delay(pauseTime).ConfigureAwait(false);
-                //        }
-                //    }
-
-                //    if (didPause)
-                //    {
-                //        _logger.Debug("Resuming writing to network stream due to user unpausing playback.");
-                //    }
-                //}
-
-                destination.Write(array, 0, count);
-
-                _bytesWritten += count;
+                _bytesWritten += bytesRead;
+                totalBytesRead += bytesRead;
 
                 if (_job != null)
                 {
                     _job.BytesDownloaded = Math.Max(_job.BytesDownloaded ?? _bytesWritten, _bytesWritten);
                 }
             }
+
+            return totalBytesRead;
         }
     }
 }

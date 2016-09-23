@@ -194,14 +194,22 @@ namespace MediaBrowser.Server.Implementations.LiveTv.Listings
                         return station;
                     }
 
-                    if (string.IsNullOrWhiteSpace(channelName))
+                    if (!string.IsNullOrWhiteSpace(channelName))
                     {
-                        return null;
+                        channelName = NormalizeName(channelName);
+
+                        var result = channelPair.Values.FirstOrDefault(i => string.Equals(NormalizeName(i.callsign ?? string.Empty), channelName, StringComparison.OrdinalIgnoreCase));
+
+                        if (result != null)
+                        {
+                            return result;
+                        }
                     }
 
-                    channelName = NormalizeName(channelName);
-
-                    return channelPair.Values.FirstOrDefault(i => string.Equals(NormalizeName(i.callsign ?? string.Empty), channelName, StringComparison.OrdinalIgnoreCase));
+                    if (!string.IsNullOrWhiteSpace(channelNumber))
+                    {
+                        return channelPair.Values.FirstOrDefault(i => string.Equals(NormalizeName(i.stationID ?? string.Empty), channelNumber, StringComparison.OrdinalIgnoreCase));
+                    }
                 }
 
                 return null;
@@ -307,9 +315,14 @@ namespace MediaBrowser.Server.Implementations.LiveTv.Listings
                     channelNumber = channelNumber.TrimStart('0');
 
                     _logger.Debug("Found channel: " + channelNumber + " in Schedules Direct");
-                    var schChannel = root.stations.FirstOrDefault(item => item.stationID == map.stationID);
-
-                    AddToChannelPairCache(listingsId, channelNumber, schChannel);
+                    if (root.stations != null)
+                    {
+                        var schChannel = root.stations.FirstOrDefault(item => string.Equals(item.stationID, map.stationID, StringComparison.OrdinalIgnoreCase));
+                        if (schChannel != null)
+                        {
+                            AddToChannelPairCache(listingsId, channelNumber, schChannel);
+                        }
+                    }
                 }
                 _logger.Info("Added " + GetChannelPairCacheCount(listingsId) + " channels to the dictionary");
 
@@ -348,7 +361,11 @@ namespace MediaBrowser.Server.Implementations.LiveTv.Listings
 
             if (programInfo.audioProperties != null)
             {
-                if (programInfo.audioProperties.Exists(item => string.Equals(item, "dd 5.1", StringComparison.OrdinalIgnoreCase)))
+                if (programInfo.audioProperties.Exists(item => string.Equals(item, "atmos", StringComparison.OrdinalIgnoreCase)))
+                {
+                    audioType = ProgramAudio.Atmos;
+                }
+                else if (programInfo.audioProperties.Exists(item => string.Equals(item, "dd 5.1", StringComparison.OrdinalIgnoreCase)))
                 {
                     audioType = ProgramAudio.DolbyDigital;
                 }
@@ -405,6 +422,7 @@ namespace MediaBrowser.Server.Implementations.LiveTv.Listings
             if (programInfo.videoProperties != null)
             {
                 info.IsHD = programInfo.videoProperties.Contains("hdtv", StringComparer.OrdinalIgnoreCase);
+                info.Is3D = programInfo.videoProperties.Contains("3d", StringComparer.OrdinalIgnoreCase);
             }
 
             if (details.contentRating != null && details.contentRating.Count > 0)
@@ -785,9 +803,10 @@ namespace MediaBrowser.Server.Implementations.LiveTv.Listings
             get { return "Schedules Direct"; }
         }
 
+        public static string TypeName = "SchedulesDirect";
         public string Type
         {
-            get { return "SchedulesDirect"; }
+            get { return TypeName; }
         }
 
         private async Task<bool> HasLineup(ListingsProviderInfo info, CancellationToken cancellationToken)

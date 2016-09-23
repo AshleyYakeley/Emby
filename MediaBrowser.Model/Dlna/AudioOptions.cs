@@ -11,7 +11,15 @@ namespace MediaBrowser.Model.Dlna
         public AudioOptions()
         {
             Context = EncodingContext.Streaming;
+
+            EnableDirectPlay = true;
+            EnableDirectStream = true;
         }
+
+        public bool EnableDirectPlay { get; set; }
+        public bool EnableDirectStream { get; set; }
+        public bool ForceDirectPlay { get; set; }
+        public bool ForceDirectStream { get; set; }
 
         public string ItemId { get; set; }
         public List<MediaSourceInfo> MediaSources { get; set; }
@@ -51,7 +59,7 @@ namespace MediaBrowser.Model.Dlna
         /// Gets the maximum bitrate.
         /// </summary>
         /// <returns>System.Nullable&lt;System.Int32&gt;.</returns>
-        public int? GetMaxBitrate()
+        public int? GetMaxBitrate(bool isAudio)
         {
             if (MaxBitrate.HasValue)
             {
@@ -62,6 +70,10 @@ namespace MediaBrowser.Model.Dlna
             {
                 if (Context == EncodingContext.Static)
                 {
+                    if (isAudio && Profile.MaxStaticMusicBitrate.HasValue)
+                    {
+                        return Profile.MaxStaticMusicBitrate;
+                    }
                     return Profile.MaxStaticBitrate;
                 }
 

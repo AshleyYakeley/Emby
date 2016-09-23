@@ -10,6 +10,9 @@ namespace MediaBrowser.Model.Configuration
         public int ThrottleDelaySeconds { get; set; }
         public string HardwareAccelerationType { get; set; }
         public string EncoderAppPath { get; set; }
+        public string VaapiDevice { get; set; }
+        public int H264Crf { get; set; }
+        public string H264Preset { get; set; }
 
         public EncodingOptions()
         {
@@ -17,6 +20,8 @@ namespace MediaBrowser.Model.Configuration
             EnableThrottling = true;
             ThrottleDelaySeconds = 180;
             EncodingThreadCount = -1;
+            VaapiDevice = "/dev/dri/card0";
+            H264Crf = 23;
         }
     }
 }

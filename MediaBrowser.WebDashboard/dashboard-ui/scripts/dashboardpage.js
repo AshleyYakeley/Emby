@@ -1,4 +1,4 @@
-﻿define(['datetime', 'jQuery'], function (datetime, $) {
+﻿define(['datetime', 'jQuery', 'cardStyle'], function (datetime, $) {
 
     function renderNoHealthAlertsMessage(page) {
 
@@ -16,9 +16,22 @@
         renderNoHealthAlertsMessage(page);
     }
 
+    function onConnectionHelpClick(e) {
+
+        e.preventDefault();
+        return false;
+    }
+
     window.DashboardPage = {
 
         newsStartIndex: 0,
+
+        onPageInit: function () {
+
+            var page = this;
+
+            page.querySelector('.btnConnectionHelp').addEventListener('click', onConnectionHelpClick);
+        },
 
         onPageShow: function () {
 
@@ -28,10 +41,6 @@
 
             if (!apiClient) {
                 return;
-            }
-
-            if (Dashboard.lastSystemInfo) {
-                page.querySelector('.serverNameHeader').innerHTML = Dashboard.lastSystemInfo.ServerName;
             }
 
             DashboardPage.newsStartIndex = 0;
@@ -100,9 +109,13 @@
             ApiClient.getSystemInfo().then(function (systemInfo) {
 
                 page.querySelector('.serverNameHeader').innerHTML = systemInfo.ServerName;
-                Dashboard.updateSystemInfo(systemInfo);
 
-                $('#appVersionNumber', page).html(Globalize.translate('LabelVersionNumber').replace('{0}', systemInfo.Version));
+                var localizedVersion = Globalize.translate('LabelVersionNumber', systemInfo.Version);
+                if (systemInfo.SystemUpdateLevel && systemInfo.SystemUpdateLevel != 'Release') {
+                    localizedVersion += " " + Globalize.translate('Option' + systemInfo.SystemUpdateLevel).toLowerCase();
+                }
+
+                $('#appVersionNumber', page).html(localizedVersion);
 
                 if (systemInfo.SupportsHttps) {
                     $('#ports', page).html(Globalize.translate('LabelRunningOnPorts', '<b>' + systemInfo.HttpServerPortNumber + '</b>', '<b>' + systemInfo.HttpsPortNumber + '</b>'));
@@ -146,28 +159,28 @@
                     var itemHtml = '';
 
                     itemHtml += '<a class="clearLink" href="' + item.Link + '" target="_blank">';
-                    itemHtml += '<paper-icon-item>';
+                    itemHtml += '<div class="listItem listItem-noborder">';
 
-                    itemHtml += '<paper-fab mini class="blue" icon="dvr" item-icon></paper-fab>';
+                    itemHtml += '<i class="listItemIcon md-icon">dvr</i>';
 
-                    itemHtml += '<paper-item-body three-line>';
+                    itemHtml += '<div class="listItemBody three-line">';
 
-                    itemHtml += '<div>';
+                    itemHtml += '<h3 class="listItemBodyText">';
                     itemHtml += item.Title;
-                    itemHtml += '</div>';
+                    itemHtml += '</h3>';
 
-                    itemHtml += '<div secondary>';
+                    itemHtml += '<div class="listItemBodyText secondary">';
                     var date = datetime.parseISO8601Date(item.Date, true);
                     itemHtml += date.toLocaleDateString();
                     itemHtml += '</div>';
 
-                    itemHtml += '<div secondary>';
+                    itemHtml += '<div class="listItemBodyText secondary listItemBodyText-nowrap">';
                     itemHtml += item.Description;
                     itemHtml += '</div>';
 
-                    itemHtml += '</paper-item-body>';
+                    itemHtml += '</div>';
 
-                    itemHtml += '</paper-icon-item>';
+                    itemHtml += '</div>';
                     itemHtml += '</a>';
 
                     return itemHtml;
@@ -304,7 +317,7 @@
 
                 var nowPlayingItem = session.NowPlayingItem;
 
-                var className = nowPlayingItem ? 'card activeSession' : 'card activeSession';
+                var className = nowPlayingItem ? 'scalableCard card activeSession backdropCard backdropCard-scalable' : 'scalableCard card activeSession backdropCard backdropCard-scalable';
 
                 if (session.TranscodingInfo && session.TranscodingInfo.CompletionPercentage) {
                     className += ' transcodingSession';
@@ -312,10 +325,10 @@
 
                 html += '<div class="' + className + '" id="' + rowId + '">';
 
-                html += '<div class="cardBox" style="box-shadow:0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);margin:4px;">';
-                html += '<div class="cardScalable">';
+                html += '<div class="cardBox visualCardBox">';
+                html += '<div class="cardScalable visualCardBox-cardScalable">';
 
-                html += '<div class="cardPadder"></div>';
+                html += '<div class="cardPadder cardPadder-backdrop"></div>';
                 html += '<div class="cardContent">';
 
                 html += '<div class="sessionNowPlayingContent"';
@@ -347,8 +360,6 @@
 
                 html += '<div class="sessionNowPlayingTime">' + DashboardPage.getSessionNowPlayingTime(session) + '</div>';
 
-                html += '<div class="sessionNowPlayingStreamInfo">' + DashboardPage.getSessionNowPlayingStreamInfo(session) + '</div>';
-
                 //if (session.TranscodingInfo && session.TranscodingInfo.Framerate) {
 
                 //    html += '<div class="sessionTranscodingFramerate">' + session.TranscodingInfo.Framerate + ' fps</div>';
@@ -367,16 +378,16 @@
                     var position = session.PlayState.PositionTicks || 0;
                     var value = (100 * position) / nowPlayingItem.RunTimeTicks;
 
-                    html += '<progress class="itemProgressBar playbackProgress" min="0" max="100" value="' + value + '"></progress>';
+                    html += '<progress class="playbackProgress" min="0" max="100" value="' + value + '"></progress>';
                 } else {
-                    html += '<progress class="itemProgressBar playbackProgress" min="0" max="100" style="display:none;"></progress>';
+                    html += '<progress class="playbackProgress" min="0" max="100" style="display:none;"></progress>';
                 }
 
                 if (session.TranscodingInfo && session.TranscodingInfo.CompletionPercentage) {
 
-                    html += '<progress class="itemProgressBar transcodingProgress" min="0" max="100" value="' + session.TranscodingInfo.CompletionPercentage.toFixed(1) + '"></progress>';
+                    html += '<progress class="transcodingProgress" min="0" max="100" value="' + session.TranscodingInfo.CompletionPercentage.toFixed(1) + '"></progress>';
                 } else {
-                    html += '<progress class="itemProgressBar transcodingProgress" min="0" max="100" style="display:none;"></progress>';
+                    html += '<progress class="transcodingProgress" min="0" max="100" style="display:none;"></progress>';
                 }
 
                 html += '</div>';
@@ -386,8 +397,13 @@
                 // cardScalable
                 html += '</div>';
 
-                html += '<div style="padding:1em;border-top:1px solid #eee;background:#fff;text-align:center;text-transform:uppercase;display:flex;align-items:center;justify-content:center;">';
+                html += '<div style="padding:1em;border-top:1px solid #eee;background:#fff;text-align:center;">';
 
+                html += '<div class="sessionNowPlayingStreamInfo" style="padding:0 0 1em;">';
+                html += DashboardPage.getSessionNowPlayingStreamInfo(session);
+                html += '</div>';
+
+                html += '<div style="display:flex;align-items:center;justify-content:center;text-transform:uppercase;">';
                 var userImage = DashboardPage.getUserImage(session);
                 if (userImage) {
                     html += '<img style="border-radius:50px;margin-right:.5em;" src="' + userImage + '" />';
@@ -397,6 +413,7 @@
 
                 html += '<div class="sessionUserName">';
                 html += DashboardPage.getUsersHtml(session) || '&nbsp;';
+                html += '</div>';
                 html += '</div>';
                 html += '</div>';
 
@@ -417,8 +434,12 @@
             var html = '';
 
             //html += '<div>';
+            var showTranscodingInfo = false;
 
             if (session.TranscodingInfo && session.TranscodingInfo.IsAudioDirect && session.TranscodingInfo.IsVideoDirect) {
+                html += Globalize.translate('LabelPlayMethodDirectStream');
+            }
+            else if (session.TranscodingInfo && session.TranscodingInfo.IsVideoDirect) {
                 html += Globalize.translate('LabelPlayMethodDirectStream');
             }
             else if (session.PlayState.PlayMethod == 'Transcode') {
@@ -426,8 +447,9 @@
 
                 if (session.TranscodingInfo && session.TranscodingInfo.Framerate) {
 
-                    html += ' - ' + session.TranscodingInfo.Framerate + ' fps';
+                    html += ' (' + session.TranscodingInfo.Framerate + ' fps' + ')';
                 }
+                showTranscodingInfo = true;
             }
             else if (session.PlayState.PlayMethod == 'DirectStream') {
                 html += Globalize.translate('LabelPlayMethodDirectPlay');
@@ -438,41 +460,44 @@
 
             //html += '</div>';
 
-            //if (session.TranscodingInfo) {
+            if (showTranscodingInfo) {
 
-            //    html += '<br/>';
+                var line = [];
 
-            //    var line = [];
+                if (session.TranscodingInfo) {
+                    if (session.TranscodingInfo.Bitrate) {
 
-            //    if (session.TranscodingInfo.Container) {
+                        if (session.TranscodingInfo.Bitrate > 1000000) {
+                            line.push((session.TranscodingInfo.Bitrate / 1000000).toFixed(1) + ' Mbps');
+                        } else {
+                            line.push(Math.floor(session.TranscodingInfo.Bitrate / 1000) + ' kbps');
+                        }
+                    }
+                    if (session.TranscodingInfo.Container) {
 
-            //        line.push(session.TranscodingInfo.Container);
-            //    }
-            //    if (session.TranscodingInfo.Bitrate) {
+                        line.push(session.TranscodingInfo.Container);
+                    }
 
-            //        if (session.TranscodingInfo.Bitrate > 1000000) {
-            //            line.push((session.TranscodingInfo.Bitrate / 1000000).toFixed(1) + ' Mbps');
-            //        } else {
-            //            line.push(Math.floor(session.TranscodingInfo.Bitrate / 1000) + ' kbps');
-            //        }
-            //    }
-            //    if (line.length) {
+                    if (session.TranscodingInfo.VideoCodec) {
 
-            //        html += '<div>' + line.join(' ') + '</div>';
-            //    }
+                        //line.push(Globalize.translate('LabelVideoCodec').replace('{0}', session.TranscodingInfo.VideoCodec));
+                        line.push(session.TranscodingInfo.VideoCodec);
+                    }
+                    if (session.TranscodingInfo.AudioCodec && session.TranscodingInfo.AudioCodec != session.TranscodingInfo.Container) {
 
-            //    if (session.TranscodingInfo.VideoCodec) {
+                        //line.push(Globalize.translate('LabelAudioCodec').replace('{0}', session.TranscodingInfo.AudioCodec));
+                        line.push(session.TranscodingInfo.AudioCodec);
+                    }
+                }
 
-            //        html += '<div>' + Globalize.translate('LabelVideoCodec').replace('{0}', session.TranscodingInfo.VideoCodec) + '</div>';
-            //    }
-            //    if (session.TranscodingInfo.AudioCodec && session.TranscodingInfo.AudioCodec != session.TranscodingInfo.Container) {
+                if (line.length) {
 
-            //        html += '<div>' + Globalize.translate('LabelAudioCodec').replace('{0}', session.TranscodingInfo.AudioCodec) + '</div>';
-            //    }
+                    html += ' - ' + line.join(' ');
+                }
 
-            //}
+            }
 
-            return html;
+            return html || '&nbsp;';
         },
 
         getSessionNowPlayingTime: function (session) {
@@ -774,7 +799,7 @@
 
                     html += "<span style='color:#009F00;margin-left:5px;margin-right:5px;'>" + progress + "%</span>";
 
-                    html += '<button type="button" is="paper-icon-button-light" title="' + Globalize.translate('ButtonStop') + '" onclick="DashboardPage.stopTask(\'' + task.Id + '\');"><iron-icon icon="cancel"></iron-icon></button>';
+                    html += '<button type="button" is="paper-icon-button-light" title="' + Globalize.translate('ButtonStop') + '" onclick="DashboardPage.stopTask(\'' + task.Id + '\');" class="autoSize"><i class="md-icon">cancel</i></button>';
                 }
                 else if (task.State == "Cancelling") {
                     html += '<span style="color:#cc0000;">' + Globalize.translate('LabelStopping') + '</span>';
@@ -986,7 +1011,7 @@
         }
     };
 
-    $(document).on('pageshow', "#dashboardPage", DashboardPage.onPageShow).on('pagebeforehide', "#dashboardPage", DashboardPage.onPageHide);
+    $(document).on('pageinit', "#dashboardPage", DashboardPage.onPageInit).on('pageshow', "#dashboardPage", DashboardPage.onPageShow).on('pagebeforehide', "#dashboardPage", DashboardPage.onPageHide);
 
     (function ($, document, window) {
 
@@ -994,7 +1019,7 @@
 
             var html = '';
 
-            html += '<paper-icon-item>';
+            html += '<div class="listItem listItem-noborder">';
 
             var color = entry.Severity == 'Error' || entry.Severity == 'Fatal' || entry.Severity == 'Warn' ? '#cc0000' : '#52B54B';
 
@@ -1006,30 +1031,30 @@
                     height: 40
                 });
 
-                html += '<paper-fab mini style="background-color:' + color + ';background-image:url(\'' + userImgUrl + '\');background-repeat:no-repeat;background-position:center center;background-size: cover;" item-icon></paper-fab>';
+                html += '<i class="listItemIcon md-icon" style="width:2em!important;height:2em!important;padding:0;color:transparent;background-color:' + color + ';background-image:url(\'' + userImgUrl + '\');background-repeat:no-repeat;background-position:center center;background-size: cover;">dvr</i>';
             }
             else {
-                html += '<paper-fab mini icon="dvr" style="background-color:' + color + '" item-icon></paper-fab>';
+                html += '<i class="listItemIcon md-icon" style="background-color:' + color + '">dvr</i>';
             }
 
-            html += '<paper-item-body three-line>';
+            html += '<div class="listItemBody three-line">';
 
-            html += '<div>';
+            html += '<h3 class="listItemBodyText">';
             html += entry.Name;
-            html += '</div>';
+            html += '</h3>';
 
-            html += '<div secondary>';
+            html += '<div class="listItemBodyText secondary">';
             var date = datetime.parseISO8601Date(entry.Date, true);
             html += date.toLocaleDateString() + ' ' + date.toLocaleTimeString().toLowerCase();
             html += '</div>';
 
-            html += '<div secondary>';
+            html += '<div class="listItemBodyText secondary listItemBodyText-nowrap">';
             html += entry.ShortOverview || '';
             html += '</div>';
 
-            html += '</paper-item-body>';
+            html += '</div>';
 
-            html += '</paper-icon-item>';
+            html += '</div>';
 
             return html;
         }

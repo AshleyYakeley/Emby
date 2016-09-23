@@ -1,10 +1,10 @@
-﻿<div id="nowPlayingPage" data-role="page" class="page libraryPage nowPlayingPage noSecondaryNavPage selfBackdropPage" data-contextname="${TitleRemoteControl}" data-theme="b" style="padding:0;">
+﻿<div id="nowPlayingPage" data-role="page" class="page libraryPage nowPlayingPage noSecondaryNavPage selfBackdropPage" data-title="${TitleRemoteControl}" data-theme="b" style="padding:0;">
 
     <div class="remoteControlContent">
 
         <div style="background: #080808;">
             <button is="paper-icon-button-light" style="position: absolute; top: .5em; left: .5em; z-index: 1;" tabindex="-1" class="btnExitRemoteControl autoSize">
-                <i class="md-icon">arrow_back</i>
+                <i class="md-icon">&#xE5C4;</i>
             </button>
             <div style="float: right; position: absolute; top: .5em; right: .5em; text-align: right;" class="topRightContainer">
                 <span class="nowPlayingSelectedPlayer"></span>
@@ -14,11 +14,20 @@
             </div>
         </div>
 
-        <div class="libraryViewNav headroomDisabled">
-            <button class="pageTabButton is-active" data-index="0">${TabNowPlaying}</button>
-            <button class="pageTabButton" data-index="1">${TabControls}</button>
-            <button class="pageTabButton" data-index="2">${TabPlaylist}</button>
+        <div is="emby-tabs" class="libraryViewNav headroomDisabled">
+            <div class="emby-tabs-slider">
+                <button is="emby-button" class="emby-tab-button is-active" data-index="0">
+                    <div class="emby-button-foreground">${TabNowPlaying}</div>
+                </button>
+                <button is="emby-button" class="emby-tab-button" data-index="1">
+                    <div class="emby-button-foreground">${TabControls}</div>
+                </button>
+                <button is="emby-button" class="emby-tab-button" data-index="2">
+                    <div class="emby-button-foreground">${TabPlaylist}</div>
+                </button>
+            </div>
         </div>
+
         <div class="is-active pageTabContent ehsContent" id="nowPlayingTab" data-index="0">
             <div style="text-align:center;">
                 <div class="nowPlayingPageTitle" style="line-height: normal;">
@@ -125,7 +134,7 @@
                 </div>
                 <div>
                     <button is="paper-icon-button-light" class="btnBack btnCommand autoSize" title="${ButtonBack}" data-command="Back">
-                        <i class="md-icon">arrow_back</i>
+                        <i class="md-icon">&#xE5C4;</i>
                     </button>
 
                     <button is="paper-icon-button-light" class="btnInfo btnCommand autoSize" title="${ButtonInfo}" data-command="ToggleContextMenu">
@@ -165,7 +174,7 @@
                                 <input is="emby-input" class="sendMessageElement" type="text" id="txtMessageText" label="${LabelMessageText}" required />
                             </div>
                             <p>
-                                <button is="emby-button" class="sendMessageElement accent block raised" type="submit" raised>${ButtonSend}</button>
+                                <button is="emby-button" class="sendMessageElement button-submit block raised" type="submit" raised>${ButtonSend}</button>
                             </p>
                         </form>
                     </div>
@@ -178,7 +187,7 @@
                                 <input is="emby-input" class="typeTextElement" type="text" id="txtTypeText" label="${LabelTypeText}" required />
                             </div>
                             <p>
-                                <button is="emby-button" class="typeTextElement accent block raised" type="submit" raised>${ButtonSend}</button>
+                                <button is="emby-button" class="typeTextElement button-submit block raised" type="submit" raised>${ButtonSend}</button>
                             </p>
                         </form>
                     </div>
@@ -186,7 +195,7 @@
             </div>
         </div>
         <div class="pageTabContent ehsContent" id="playlistTab" data-index="2">
-            <div class="playlist itemsContainer" style="max-width: 800px; margin: 3em auto 0; padding-bottom: 200px;">
+            <div class="playlist itemsContainer vertical-list" is="emby-itemscontainer" style="max-width: 800px; margin: 3em auto 0; padding-bottom: 200px;">
             </div>
         </div>
     </div>

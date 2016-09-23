@@ -1,4 +1,4 @@
-﻿define(['libraryBrowser', 'scrollStyles'], function (libraryBrowser) {
+﻿define(['libraryBrowser', 'cardBuilder', 'scrollStyles', 'emby-itemscontainer', 'emby-tabs', 'emby-button'], function (libraryBrowser, cardBuilder) {
 
     function enableScrollX() {
         return browserInfo.mobile && AppInfo.enableAppLayouts;
@@ -17,14 +17,19 @@
 
         Dashboard.showLoadingMsg();
 
+        var limit = getLimit();
+        if (enableScrollX()) {
+            limit *= 2;
+        }
+
         ApiClient.getLiveTvRecommendedPrograms({
 
             userId: Dashboard.getCurrentUserId(),
             IsAiring: true,
-            limit: getLimit() * 2,
+            limit: limit,
             ImageTypeLimit: 1,
             EnableImageTypes: "Primary",
-            EnableTotalRecordCount: false
+            Fields: "ChannelInfo"
 
         }).then(function (result) {
 
@@ -47,7 +52,8 @@
             IsSports: false,
             IsKids: false,
             IsSeries: true,
-            EnableTotalRecordCount: false
+            EnableTotalRecordCount: false,
+            Fields: "ChannelInfo"
 
         }).then(function (result) {
 
@@ -61,7 +67,8 @@
             HasAired: false,
             limit: getLimit(),
             IsMovie: true,
-            EnableTotalRecordCount: false
+            EnableTotalRecordCount: false,
+            Fields: "ChannelInfo"
 
         }).then(function (result) {
 
@@ -75,7 +82,8 @@
             HasAired: false,
             limit: getLimit(),
             IsSports: true,
-            EnableTotalRecordCount: false
+            EnableTotalRecordCount: false,
+            Fields: "ChannelInfo"
 
         }).then(function (result) {
 
@@ -89,7 +97,8 @@
             HasAired: false,
             limit: getLimit(),
             IsKids: true,
-            EnableTotalRecordCount: false
+            EnableTotalRecordCount: false,
+            Fields: "ChannelInfo"
 
         }).then(function (result) {
 
@@ -99,16 +108,20 @@
 
     function renderItems(page, items, sectionClass, overlayButton, shape) {
 
-        var html = libraryBrowser.getPosterViewHtml({
+        var html = cardBuilder.getCardsHtml({
             items: items,
-            shape: shape || (enableScrollX() ? 'autooverflow' : 'auto'),
+            preferThumb: !shape,
+            shape: shape || (enableScrollX() ? 'overflowBackdrop' : 'backdrop'),
             showTitle: true,
             centerText: true,
             coverImage: true,
             overlayText: false,
             lazy: true,
             overlayMoreButton: overlayButton != 'play',
-            overlayPlayButton: overlayButton == 'play'
+            overlayPlayButton: overlayButton == 'play',
+            allowBottomPadding: !enableScrollX(),
+            showProgramAirInfo: true
+            //cardFooterAside: 'logo'
         });
 
         var elem = page.querySelector('.' + sectionClass);
@@ -130,10 +143,11 @@
             for (var i = 0, length = containers.length; i < length; i++) {
                 if (enableScrollX()) {
                     containers[i].classList.add('hiddenScrollX');
+                    containers[i].classList.remove('vertical-wrap');
                 } else {
                     containers[i].classList.remove('hiddenScrollX');
+                    containers[i].classList.add('vertical-wrap');
                 }
-                LibraryBrowser.createCardMenus(containers[i]);
             }
         };
 
@@ -168,6 +182,10 @@
                     break;
                 case 4:
                     document.body.classList.remove('autoScrollY');
+                    depends.push('scripts/livetvschedule');
+                    break;
+                case 5:
+                    document.body.classList.remove('autoScrollY');
                     depends.push('scripts/livetvseriestimers');
                     break;
                 default:
@@ -196,17 +214,11 @@
             });
         }
 
-        var mdlTabs = view.querySelector('.libraryViewNav');
+        var viewTabs = view.querySelector('.libraryViewNav');
 
-        var baseUrl = 'tv.html';
-        var topParentId = params.topParentId;
-        if (topParentId) {
-            baseUrl += '?topParentId=' + topParentId;
-        }
+        libraryBrowser.configurePaperLibraryTabs(view, viewTabs, view.querySelectorAll('.pageTabContent'), [0, 2, 3, 4, 5]);
 
-        libraryBrowser.configurePaperLibraryTabs(view, mdlTabs, view.querySelectorAll('.pageTabContent'), [0, 2, 3, 4]);
-
-        mdlTabs.addEventListener('tabchange', function (e) {
+        viewTabs.addEventListener('tabchange', function (e) {
             loadTab(view, parseInt(e.detail.selectedTabIndex));
         });
 
@@ -215,8 +227,16 @@
             document.body.classList.remove('autoScrollY');
         });
 
+        require(["headroom-window"], function (headroom) {
+            headroom.add(viewTabs);
+            self.headroom = headroom;
+        });
+
         view.addEventListener('viewdestroy', function (e) {
 
+            if (self.headroom) {
+                self.headroom.remove(viewTabs);
+            }
             tabControllers.forEach(function (t) {
                 if (t.destroy) {
                     t.destroy();

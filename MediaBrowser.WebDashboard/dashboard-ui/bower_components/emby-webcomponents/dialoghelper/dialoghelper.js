@@ -1,4 +1,4 @@
-﻿define(['historyManager', 'focusManager', 'browser', 'layoutManager', 'inputManager', 'scrollHelper', 'css!./dialoghelper.css', 'scrollStyles'], function (historyManager, focusManager, browser, layoutManager, inputManager, scrollHelper) {
+﻿define(['historyManager', 'focusManager', 'browser', 'layoutManager', 'inputManager', 'dom', 'css!./dialoghelper.css', 'scrollStyles'], function (historyManager, focusManager, browser, layoutManager, inputManager, dom) {
 
     var globalOnOpenCallback;
 
@@ -13,6 +13,18 @@
         }
 
         return false;
+    }
+
+    function removeCenterFocus(dlg) {
+
+        if (layoutManager.tv) {
+            if (dlg.classList.contains('smoothScrollX')) {
+                centerFocus(dlg, true, false);
+            }
+            else if (dlg.classList.contains('smoothScrollY')) {
+                centerFocus(dlg, false, false);
+            }
+        }
     }
 
     function dialogHashHandler(dlg, hash, resolve) {
@@ -47,7 +59,10 @@
 
         function onDialogClosed() {
 
-            inputManager.off(dlg, onBackCommand);
+            if (!isHistoryEnabled(dlg)) {
+                inputManager.off(dlg, onBackCommand);
+            }
+
             window.removeEventListener('popstate', onHashChange);
 
             removeBackdrop(dlg);
@@ -64,10 +79,20 @@
                 }
             }
 
-            activeElement.focus();
+            if (layoutManager.tv) {
+                activeElement.focus();
+            }
 
-            if (dlg.getAttribute('data-removeonclose') == 'true') {
-                dlg.parentNode.removeChild(dlg);
+            if (dlg.getAttribute('data-removeonclose') != 'false') {
+                removeCenterFocus(dlg);
+
+                var dialogContainer = dlg.dialogContainer;
+                if (dialogContainer) {
+                    dialogContainer.parentNode.removeChild(dialogContainer);
+                    dlg.dialogContainer = null;
+                } else {
+                    dlg.parentNode.removeChild(dlg);
+                }
             }
 
             //resolve();
@@ -82,32 +107,16 @@
 
         dlg.addEventListener('close', onDialogClosed);
 
-        var center = !dlg.classList.contains('fixedSize');
+        var center = !dlg.classList.contains('dialog-fixedSize');
         if (center) {
             dlg.classList.add('centeredDialog');
         }
 
         dlg.classList.remove('hide');
 
-        // Use native methods if available
-        if (dlg.showModal) {
-            if (dlg.getAttribute('modal')) {
-                dlg.showModal();
-            } else {
-                closeOnBackdropClick(dlg);
-                dlg.showModal();
-            }
-            // Undo the auto-focus applied by the native dialog element
-            safeBlur(document.activeElement);
-        } else {
-            addBackdropOverlay(dlg);
-        }
+        addBackdropOverlay(dlg);
 
         dlg.classList.add('opened');
-
-        if (center) {
-            centerDialog(dlg);
-        }
 
         if (dlg.getAttribute('data-lockscroll') == 'true' && !document.body.classList.contains('noScroll')) {
             document.body.classList.add('noScroll');
@@ -125,71 +134,26 @@
         }
     }
 
-    function parentWithTag(elem, tagName) {
-
-        while (elem.tagName != tagName) {
-            elem = elem.parentNode;
-
-            if (!elem) {
-                return null;
-            }
-        }
-
-        return elem;
-    }
-
-    function closeOnBackdropClick(dlg) {
-
-        dlg.addEventListener('click', function (event) {
-            var rect = dlg.getBoundingClientRect();
-            var isInDialog = (rect.top <= event.clientY && event.clientY <= (rect.top + rect.height)
-              && rect.left <= event.clientX && event.clientX <= (rect.left + rect.width));
-
-            if (!isInDialog) {
-                if (parentWithTag(event.target, 'SELECT')) {
-                    isInDialog = true;
-                }
-            }
-
-            if (!isInDialog) {
-                close(dlg);
-            }
-        });
-    }
-
-    function autoFocus(dlg) {
-
-        // The dialog may have just been created and webComponents may not have completed initialiazation yet.
-        // Without this, seeing some script errors in Firefox
-        // Also for some reason it won't auto-focus without a delay here, still investigating that
-
-        var delay = enableAnimation() ? 300 : 300;
-
-        setTimeout(function () {
-            focusManager.autoFocus(dlg);
-        }, delay);
-    }
-
-    function safeBlur(el) {
-        if (el && el.blur && el != document.body) {
-            el.blur();
-        }
-    }
-
     function addBackdropOverlay(dlg) {
 
         var backdrop = document.createElement('div');
         backdrop.classList.add('dialogBackdrop');
-        dlg.parentNode.insertBefore(backdrop, dlg);
+
+        var backdropParent = dlg.dialogContainer || dlg;
+        backdropParent.parentNode.insertBefore(backdrop, backdropParent);
         dlg.backdrop = backdrop;
 
         // Doing this immediately causes the opacity to jump immediately without animating
         setTimeout(function () {
-            backdrop.classList.add('opened');
+            backdrop.classList.add('dialogBackdropOpened');
         }, 0);
 
-        backdrop.addEventListener('click', function () {
-            close(dlg);
+        dom.addEventListener((dlg.dialogContainer || backdrop), 'click', function (e) {
+            if (e.target == dlg.dialogContainer) {
+                close(dlg);
+            }
+        }, {
+            passive: true
         });
     }
 
@@ -202,6 +166,17 @@
         if (globalOnOpenCallback) {
             globalOnOpenCallback(dlg);
         }
+
+        var parent = dlg.parentNode;
+        if (parent) {
+            parent.removeChild(dlg);
+        }
+
+        var dialogContainer = document.createElement('div');
+        dialogContainer.classList.add('dialogContainer');
+        dialogContainer.appendChild(dlg);
+        dlg.dialogContainer = dialogContainer;
+        document.body.appendChild(dialogContainer);
 
         return new Promise(function (resolve, reject) {
 
@@ -284,7 +259,14 @@
 
         if (!dlg.classList.contains('hide')) {
 
+            dlg.dispatchEvent(new CustomEvent('closing', {
+                bubbles: false,
+                cancelable: false
+            }));
+
             var onAnimationFinish = function () {
+                focusManager.popScope(dlg);
+
                 dlg.classList.add('hide');
                 if (dlg.close) {
                     dlg.close();
@@ -320,8 +302,9 @@
     function animateDialogOpen(dlg) {
 
         var onAnimationFinish = function () {
+            focusManager.pushScope(dlg);
             if (dlg.getAttribute('data-autofocus') == 'true') {
-                autoFocus(dlg);
+                focusManager.autoFocus(dlg);
             }
         };
 
@@ -348,13 +331,11 @@
             return true;
         }
 
-        return browser.mobile;
-    }
+        if (options.size) {
+            return true;
+        }
 
-    function centerDialog(dlg) {
-
-        dlg.style.marginLeft = (-(dlg.offsetWidth / 2)) + 'px';
-        dlg.style.marginTop = (-(dlg.offsetHeight / 2)) + 'px';
+        return browser.touch;
     }
 
     function removeBackdrop(dlg) {
@@ -364,7 +345,7 @@
         if (backdrop) {
             dlg.backdrop = null;
 
-            backdrop.classList.remove('opened');
+            backdrop.classList.remove('dialogBackdropOpened');
 
             setTimeout(function () {
                 backdrop.parentNode.removeChild(backdrop);
@@ -372,20 +353,21 @@
         }
     }
 
+    function centerFocus(elem, horiz, on) {
+        require(['scrollHelper'], function (scrollHelper) {
+            var fn = on ? 'on' : 'off';
+            scrollHelper.centerFocus[fn](elem, horiz);
+        });
+    }
+
     function createDialog(options) {
 
         options = options || {};
 
-        var dlg = document.createElement('dialog');
-
         // If there's no native dialog support, use a plain div
         // Also not working well in samsung tizen browser, content inside not clickable
-        if (!dlg.showModal || browser.tv) {
-            dlg = document.createElement('div');
-        } else {
-            // Just go ahead and always use a plain div because we're seeing issues overlaying absoltutely positioned content over a modal dialog
-            dlg = document.createElement('div');
-        }
+        // Just go ahead and always use a plain div because we're seeing issues overlaying absoltutely positioned content over a modal dialog
+        var dlg = document.createElement('div');
 
         dlg.classList.add('focuscontainer');
         dlg.classList.add('hide');
@@ -416,8 +398,8 @@
         var exitAnimation = options.exitAnimation || defaultExitAnimation;
 
         // If it's not fullscreen then lower the default animation speed to make it open really fast
-        var entryAnimationDuration = options.entryAnimationDuration || (options.size ? 200 : 300);
-        var exitAnimationDuration = options.exitAnimationDuration || (options.size ? 200 : 300);
+        var entryAnimationDuration = options.entryAnimationDuration || (options.size !== 'fullscreen' ? 180 : 280);
+        var exitAnimationDuration = options.exitAnimationDuration || (options.size !== 'fullscreen' ? 180 : 280);
 
         dlg.animationConfig = {
             // scale up
@@ -452,14 +434,14 @@
             dlg.classList.add('smoothScrollX');
 
             if (layoutManager.tv) {
-                scrollHelper.centerFocus.on(dlg, true);
+                centerFocus(dlg, true, true);
             }
         }
         else if (options.scrollY !== false) {
             dlg.classList.add('smoothScrollY');
 
             if (layoutManager.tv) {
-                scrollHelper.centerFocus.on(dlg, false);
+                centerFocus(dlg, false, true);
             }
         }
 
@@ -468,8 +450,8 @@
         }
 
         if (options.size) {
-            dlg.classList.add('fixedSize');
-            dlg.classList.add(options.size);
+            dlg.classList.add('dialog-fixedSize');
+            dlg.classList.add('dialog-' + options.size);
         }
 
         return dlg;

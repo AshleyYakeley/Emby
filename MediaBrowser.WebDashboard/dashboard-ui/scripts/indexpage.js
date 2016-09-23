@@ -1,10 +1,10 @@
-﻿define(['libraryBrowser'], function (libraryBrowser) {
+﻿define(['libraryBrowser', 'emby-tabs', 'emby-button'], function (libraryBrowser) {
 
     var defaultFirstSection = 'smalllibrarytiles';
 
     function getDefaultSection(index) {
 
-        if (AppInfo.isNativeApp && browserInfo.safari) {
+        if (AppInfo.isNativeApp) {
 
             switch (index) {
 
@@ -24,7 +24,6 @@
                     return '';
             }
         }
-
         switch (index) {
 
             case 0:
@@ -68,10 +67,10 @@
             return Sections.loadLibraryTiles(elem, user, 'backdrop', index, false, showLibraryTileNames);
         }
         else if (section == 'smalllibrarytiles') {
-            return Sections.loadLibraryTiles(elem, user, 'homePageSmallBackdrop', index, false, showLibraryTileNames);
+            return Sections.loadLibraryTiles(elem, user, 'smallBackdrop', index, false, showLibraryTileNames);
         }
         else if (section == 'smalllibrarytiles-automobile') {
-            return Sections.loadLibraryTiles(elem, user, 'homePageSmallBackdrop', index, true, showLibraryTileNames);
+            return Sections.loadLibraryTiles(elem, user, 'smallBackdrop', index, true, showLibraryTileNames);
         }
         else if (section == 'librarytiles-automobile') {
             return Sections.loadLibraryTiles(elem, user, 'backdrop', index, true, showLibraryTileNames);
@@ -248,9 +247,9 @@
             loadHomeTab(view, tabContent);
         };
 
-        var mdlTabs = view.querySelector('.libraryViewNav');
+        var viewTabs = view.querySelector('.libraryViewNav');
 
-        libraryBrowser.configurePaperLibraryTabs(view, mdlTabs, view.querySelectorAll('.pageTabContent'), [0, 1, 2, 3]);
+        libraryBrowser.configurePaperLibraryTabs(view, viewTabs, view.querySelectorAll('.pageTabContent'), [0, 1, 2, 3], AppInfo.enableHomeTabs);
 
         var tabControllers = [];
         var renderedTabs = [];
@@ -319,11 +318,11 @@
             });
         }
 
-        mdlTabs.addEventListener('beforetabchange', function (e) {
+        viewTabs.addEventListener('beforetabchange', function (e) {
             preLoadTab(view, parseInt(e.detail.selectedTabIndex));
         });
 
-        mdlTabs.addEventListener('tabchange', function (e) {
+        viewTabs.addEventListener('tabchange', function (e) {
             loadTab(view, parseInt(e.detail.selectedTabIndex));
         });
 
@@ -343,11 +342,7 @@
 
             if (state.NowPlayingItem && state.NowPlayingItem.MediaType == 'Video') {
 
-                mdlTabs.dispatchEvent(new CustomEvent("tabchange", {
-                    detail: {
-                        selectedTabIndex: libraryBrowser.selectedTab(mdlTabs)
-                    }
-                }));
+                viewTabs.triggerTabChange();
             }
         }
 
@@ -373,6 +368,17 @@
         view.addEventListener('viewbeforehide', function (e) {
             Events.off(MediaController, 'playbackstop', onPlaybackStop);
             Events.off(ApiClient, "websocketmessage", onWebSocketMessage);
+        });
+
+        require(["headroom-window"], function (headroom) {
+            headroom.add(viewTabs);
+            self.headroom = headroom;
+        });
+
+        view.addEventListener('viewdestroy', function (e) {
+            if (self.headroom) {
+                self.headroom.remove(viewTabs);
+            }
         });
     };
 });

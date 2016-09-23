@@ -25,6 +25,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CommonIO;
+using MediaBrowser.Controller.Configuration;
 
 namespace MediaBrowser.Api.Library
 {
@@ -288,12 +289,13 @@ namespace MediaBrowser.Api.Library
         private readonly ITVSeriesManager _tvManager;
         private readonly ILibraryMonitor _libraryMonitor;
         private readonly IFileSystem _fileSystem;
+        private readonly IServerConfigurationManager _config;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LibraryService" /> class.
         /// </summary>
         public LibraryService(IItemRepository itemRepo, ILibraryManager libraryManager, IUserManager userManager,
-                              IDtoService dtoService, IUserDataManager userDataManager, IAuthorizationContext authContext, IActivityManager activityManager, ILocalizationManager localization, ILiveTvManager liveTv, ITVSeriesManager tvManager, ILibraryMonitor libraryMonitor, IFileSystem fileSystem)
+                              IDtoService dtoService, IUserDataManager userDataManager, IAuthorizationContext authContext, IActivityManager activityManager, ILocalizationManager localization, ILiveTvManager liveTv, ITVSeriesManager tvManager, ILibraryMonitor libraryMonitor, IFileSystem fileSystem, IServerConfigurationManager config)
         {
             _itemRepo = itemRepo;
             _libraryManager = libraryManager;
@@ -307,6 +309,7 @@ namespace MediaBrowser.Api.Library
             _tvManager = tvManager;
             _libraryMonitor = libraryMonitor;
             _fileSystem = fileSystem;
+            _config = config;
         }
 
         public object Get(GetSimilarItems request)
@@ -350,7 +353,8 @@ namespace MediaBrowser.Api.Library
                     Fields = request.Fields,
                     Id = request.Id,
                     Limit = request.Limit,
-                    UserId = request.UserId
+                    UserId = request.UserId,
+                    ExcludeArtistIds = request.ExcludeArtistIds
                 });
             }
             if (item is MusicArtist)
@@ -376,7 +380,7 @@ namespace MediaBrowser.Api.Library
 
             if (item is Movie || (program != null && program.IsMovie) || item is Trailer)
             {
-                return new MoviesService(_userManager, _userDataManager, _libraryManager, _itemRepo, _dtoService)
+                return new MoviesService(_userManager, _userDataManager, _libraryManager, _itemRepo, _dtoService, _config)
                 {
                     AuthorizationContext = AuthorizationContext,
                     Logger = Logger,
@@ -839,6 +843,7 @@ namespace MediaBrowser.Api.Library
             var dtoOptions = GetDtoOptions(request);
 
             var dtos = GetThemeSongIds(item).Select(_libraryManager.GetItemById)
+                            .Where(i => i != null)
                             .OrderBy(i => i.SortName)
                             .Select(i => _dtoService.GetBaseItemDto(i, dtoOptions, user, item));
 
@@ -882,6 +887,7 @@ namespace MediaBrowser.Api.Library
             var dtoOptions = GetDtoOptions(request);
 
             var dtos = GetThemeVideoIds(item).Select(_libraryManager.GetItemById)
+                            .Where(i => i != null)
                             .OrderBy(i => i.SortName)
                             .Select(i => _dtoService.GetBaseItemDto(i, dtoOptions, user, item));
 

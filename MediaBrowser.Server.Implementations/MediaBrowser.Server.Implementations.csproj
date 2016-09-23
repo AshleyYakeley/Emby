@@ -46,7 +46,7 @@
       <HintPath>..\packages\CommonIO.1.0.0.9\lib\net45\CommonIO.dll</HintPath>
     </Reference>
     <Reference Include="Emby.XmlTv, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Emby.XmlTv.1.0.0.55\lib\net45\Emby.XmlTv.dll</HintPath>
+      <HintPath>..\packages\Emby.XmlTv.1.0.0.56\lib\net45\Emby.XmlTv.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="INIFileParser, Version=2.3.0.0, Culture=neutral, PublicKeyToken=79af7b307b65cf3c, processorArchitecture=MSIL">
@@ -56,8 +56,8 @@
     <Reference Include="Interfaces.IO">
       <HintPath>..\packages\Interfaces.IO.1.0.0.5\lib\portable-net45+sl4+wp71+win8+wpa81\Interfaces.IO.dll</HintPath>
     </Reference>
-    <Reference Include="MediaBrowser.Naming, Version=1.0.6012.15754, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\MediaBrowser.Naming.1.0.0.52\lib\portable-net45+sl4+wp71+win8+wpa81\MediaBrowser.Naming.dll</HintPath>
+    <Reference Include="MediaBrowser.Naming, Version=1.0.6059.24054, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MediaBrowser.Naming.1.0.0.55\lib\portable-net45+sl4+wp71+win8+wpa81\MediaBrowser.Naming.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="MoreLinq">
@@ -73,8 +73,8 @@
       <HintPath>..\packages\SimpleInjector.3.2.0\lib\net45\SimpleInjector.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="SocketHttpListener, Version=1.0.5955.1537, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\SocketHttpListener.1.0.0.30\lib\net45\SocketHttpListener.dll</HintPath>
+    <Reference Include="SocketHttpListener, Version=1.0.6063.4624, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\SocketHttpListener.1.0.0.39\lib\net45\SocketHttpListener.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -124,7 +124,6 @@
     <Compile Include="Channels\RefreshChannelsScheduledTask.cs" />
     <Compile Include="Collections\CollectionManager.cs" />
     <Compile Include="Collections\CollectionsDynamicFolder.cs" />
-    <Compile Include="Collections\ManualCollectionsFolder.cs" />
     <Compile Include="Collections\CollectionImageProvider.cs" />
     <Compile Include="Configuration\ServerConfigurationManager.cs" />
     <Compile Include="Connect\ConnectData.cs" />
@@ -149,6 +148,7 @@
     <Compile Include="EntryPoints\UsageReporter.cs" />
     <Compile Include="FileOrganization\EpisodeFileOrganizer.cs" />
     <Compile Include="FileOrganization\Extensions.cs" />
+    <Compile Include="FileOrganization\FileOrganizationNotifier.cs" />
     <Compile Include="FileOrganization\FileOrganizationService.cs" />
     <Compile Include="FileOrganization\NameUtils.cs" />
     <Compile Include="FileOrganization\TvFolderOrganizer.cs" />
@@ -156,6 +156,7 @@
     <Compile Include="EntryPoints\ServerEventNotifier.cs" />
     <Compile Include="EntryPoints\UserDataChangeNotifier.cs" />
     <Compile Include="FileOrganization\OrganizerScheduledTask.cs" />
+    <Compile Include="HttpServer\AsyncStreamWriter.cs" />
     <Compile Include="HttpServer\IHttpListener.cs" />
     <Compile Include="HttpServer\Security\AuthorizationContext.cs" />
     <Compile Include="HttpServer\ContainerAdapter.cs" />
@@ -249,6 +250,18 @@
     <Compile Include="LiveTv\RecordingImageProvider.cs" />
     <Compile Include="LiveTv\RefreshChannelsScheduledTask.cs" />
     <Compile Include="LiveTv\TunerHosts\SatIp\ChannelScan.cs" />
+    <Compile Include="LiveTv\TunerHosts\SatIp\Rtcp\ReportBlock.cs" />
+    <Compile Include="LiveTv\TunerHosts\SatIp\Rtcp\RtcpAppPacket.cs" />
+    <Compile Include="LiveTv\TunerHosts\SatIp\Rtcp\RtcpByePacket.cs" />
+    <Compile Include="LiveTv\TunerHosts\SatIp\Rtcp\RtcpListener.cs" />
+    <Compile Include="LiveTv\TunerHosts\SatIp\Rtcp\RtcpPacket.cs" />
+    <Compile Include="LiveTv\TunerHosts\SatIp\Rtcp\RtcpReceiverReportPacket.cs" />
+    <Compile Include="LiveTv\TunerHosts\SatIp\Rtcp\RtcpSenderReportPacket.cs" />
+    <Compile Include="LiveTv\TunerHosts\SatIp\Rtcp\RtcpSourceDescriptionPacket.cs" />
+    <Compile Include="LiveTv\TunerHosts\SatIp\Rtcp\SourceDescriptionBlock.cs" />
+    <Compile Include="LiveTv\TunerHosts\SatIp\Rtcp\SourceDescriptionItem.cs" />
+    <Compile Include="LiveTv\TunerHosts\SatIp\Rtp\RtpListener.cs" />
+    <Compile Include="LiveTv\TunerHosts\SatIp\Rtp\RtpPacket.cs" />
     <Compile Include="LiveTv\TunerHosts\SatIp\Rtsp\RtspMethod.cs" />
     <Compile Include="LiveTv\TunerHosts\SatIp\Rtsp\RtspRequest.cs" />
     <Compile Include="LiveTv\TunerHosts\SatIp\Rtsp\RtspResponse.cs" />
@@ -256,6 +269,8 @@
     <Compile Include="LiveTv\TunerHosts\SatIp\Rtsp\RtspStatusCode.cs" />
     <Compile Include="LiveTv\TunerHosts\SatIp\SatIpHost.cs" />
     <Compile Include="LiveTv\TunerHosts\SatIp\SatIpDiscovery.cs" />
+    <Compile Include="LiveTv\TunerHosts\SatIp\TransmissionMode.cs" />
+    <Compile Include="LiveTv\TunerHosts\SatIp\Utils.cs" />
     <Compile Include="Localization\LocalizationManager.cs" />
     <Compile Include="Logging\PatternsLogger.cs" />
     <Compile Include="MediaEncoder\EncodingManager.cs" />
@@ -270,6 +285,7 @@
     <Compile Include="Sorting\StartDateComparer.cs" />
     <Compile Include="Sync\SyncHelper.cs" />
     <Compile Include="Sync\SyncJobOptions.cs" />
+    <Compile Include="Sync\SyncNotificationEntryPoint.cs" />
     <Compile Include="UserViews\CollectionFolderImageProvider.cs" />
     <Compile Include="UserViews\DynamicImageProvider.cs" />
     <Compile Include="News\NewsEntryPoint.cs" />
@@ -757,9 +773,7 @@
     <EmbeddedResource Include="Localization\iso6392.txt" />
     <EmbeddedResource Include="Localization\Ratings\be.txt" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="HttpServer\NetListener\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

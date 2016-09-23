@@ -103,7 +103,6 @@
     function loadForm(page, user, displayPreferences) {
 
         page.querySelector('.chkHidePlayedFromLatest').checked = user.Configuration.HidePlayedInLatest || false;
-        page.querySelector('.chkDisplayChannelsInline').checked = !(user.Configuration.EnableChannelView || false);
 
         page.querySelector('#selectHomeSection1').value = displayPreferences.CustomPrefs.home0 || '';
         page.querySelector('#selectHomeSection2').value = displayPreferences.CustomPrefs.home1 || '';
@@ -154,8 +153,6 @@
 
         user.Configuration.HidePlayedInLatest = page.querySelector('.chkHidePlayedFromLatest').checked;
 
-        user.Configuration.EnableChannelView = !page.querySelector('.chkDisplayChannelsInline').checked;
-
         user.Configuration.LatestItemsExcludes = getCheckboxItems(".chkIncludeInLatest", page, false).map(function (i) {
 
             return i.getAttribute('data-folderid');
@@ -187,11 +184,9 @@
         });
     }
 
-    function save(page) {
+    function save(page, userId) {
 
         Dashboard.showLoadingMsg();
-
-        var userId = getParameterByName('userId') || Dashboard.getCurrentUserId();
 
         if (!AppInfo.enableAutoSave) {
             Dashboard.showLoadingMsg();
@@ -252,9 +247,11 @@
 
     return function (view, params) {
 
+        var userId = getParameterByName('userId') || Dashboard.getCurrentUserId();
+
         function onSubmit(e) {
 
-            save(view);
+            save(view, userId);
 
             // Disable default form submission
             e.preventDefault();
@@ -318,7 +315,7 @@
 
             Dashboard.showLoadingMsg();
 
-            var userId = getParameterByName('userId') || Dashboard.getCurrentUserId();
+            var userId = params.userId || Dashboard.getCurrentUserId();
 
             ApiClient.getUser(userId).then(function (user) {
 
@@ -334,7 +331,7 @@
             var page = this;
 
             if (AppInfo.enableAutoSave) {
-                save(page);
+                save(page, userId);
             }
         });
     };

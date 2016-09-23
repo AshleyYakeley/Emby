@@ -7,7 +7,6 @@ using MediaBrowser.Model.Providers;
 using MediaBrowser.Model.Sync;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.Serialization;
 
@@ -18,7 +17,7 @@ namespace MediaBrowser.Model.Dto
     /// This holds information about a BaseItem in a format that is convenient for the client.
     /// </summary>
     [DebuggerDisplay("Name = {Name}, ID = {Id}, Type = {Type}")]
-    public class BaseItemDto : IHasProviderIds, IHasPropertyChangedEvent, IItemDto, IHasServerId, IHasSyncInfo
+    public class BaseItemDto : IHasProviderIds, IItemDto, IHasServerId, IHasSyncInfo
     {
         /// <summary>
         /// Gets or sets the name.
@@ -113,6 +112,8 @@ namespace MediaBrowser.Model.Dto
         /// </summary>
         /// <value>The synchronize percent.</value>
         public double? SyncPercent { get; set; }
+
+        public string Container { get; set; }
 
         /// <summary>
         /// Gets or sets the DVD season number.
@@ -345,7 +346,16 @@ namespace MediaBrowser.Model.Dto
         /// Gets or sets a value indicating whether this instance is folder.
         /// </summary>
         /// <value><c>true</c> if this instance is folder; otherwise, <c>false</c>.</value>
-        public bool IsFolder { get; set; }
+        public bool? IsFolder { get; set; }
+
+        [IgnoreDataMember]
+        public bool IsFolderItem
+        {
+            get
+            {
+                return IsFolder ?? false;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the parent id.
@@ -655,7 +665,7 @@ namespace MediaBrowser.Model.Dto
         {
             get
             {
-                return RunTimeTicks.HasValue || IsFolder || IsGenre || IsMusicGenre || IsArtist;
+                return RunTimeTicks.HasValue || IsFolderItem || IsGenre || IsMusicGenre || IsArtist;
             }
         }
 
@@ -836,6 +846,7 @@ namespace MediaBrowser.Model.Dto
         /// </summary>
         /// <value>The album count.</value>
         public int? AlbumCount { get; set; }
+        public int? ArtistCount { get; set; }
         /// <summary>
         /// Gets or sets the music video count.
         /// </summary>
@@ -952,6 +963,16 @@ namespace MediaBrowser.Model.Dto
         public bool HasThumb
         {
             get { return ImageTags != null && ImageTags.ContainsKey(ImageType.Thumb); }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance has thumb.
+        /// </summary>
+        /// <value><c>true</c> if this instance has thumb; otherwise, <c>false</c>.</value>
+        [IgnoreDataMember]
+        public bool HasBackdrop
+        {
+            get { return (BackdropImageTags != null && BackdropImageTags.Count > 0) || (ParentBackdropImageTags != null && ParentBackdropImageTags.Count > 0); }
         }
 
         /// <summary>
@@ -1098,11 +1119,6 @@ namespace MediaBrowser.Model.Dto
                 return IsType("Movie") || IsType("Series") || IsType("MusicAlbum") || IsType("MusicArtist") || IsType("Program") || IsType("Recording") || IsType("ChannelVideoItem") || IsType("Game");
             }
         }
-
-        /// <summary>
-        /// Occurs when [property changed].
-        /// </summary>
-        public event PropertyChangedEventHandler PropertyChanged;
 
         /// <summary>
         /// Gets or sets the program identifier.

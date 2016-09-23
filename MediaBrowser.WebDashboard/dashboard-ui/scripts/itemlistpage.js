@@ -1,4 +1,4 @@
-﻿define(['libraryBrowser', 'alphaPicker'], function (libraryBrowser, alphaPicker) {
+﻿define(['libraryBrowser', 'alphaPicker', 'listView', 'cardBuilder', 'emby-itemscontainer'], function (libraryBrowser, alphaPicker, listView, cardBuilder) {
 
     return function (view, params) {
 
@@ -14,7 +14,7 @@
                     query: {
                         SortBy: "IsFolder,SortName",
                         SortOrder: "Ascending",
-                        Fields: "DateCreated,PrimaryImageAspectRatio,MediaSourceCount,SyncInfo",
+                        Fields: "DateCreated,PrimaryImageAspectRatio,MediaSourceCount",
                         ImageTypeLimit: 1,
                         EnableImageTypes: "Primary,Backdrop,Banner,Thumb",
                         StartIndex: 0,
@@ -25,7 +25,7 @@
                 pageData.query.Filters = "";
                 pageData.query.NameStartsWithOrGreater = '';
                 var key = getSavedQueryKey();
-                pageData.view = libraryBrowser.getSavedView(key) || libraryBrowser.getDefaultItemsView('Poster', 'Poster');
+                pageData.view = libraryBrowser.getSavedView(key) || 'Poster';
 
                 pageData.query.ParentId = params.parentId || null;
                 libraryBrowser.loadSavedQueryValues(key, pageData.query);
@@ -43,6 +43,26 @@
                 view.savedQueryKey = libraryBrowser.getSavedQueryKey('itemsv1');
             }
             return view.savedQueryKey;
+        }
+
+        function onViewStyleChange() {
+
+            var viewStyle = getPageData(view).view;
+
+            var itemsContainer = view.querySelector('#items');
+
+            if (viewStyle == "List") {
+
+                itemsContainer.classList.add('vertical-list');
+                itemsContainer.classList.remove('vertical-wrap');
+            }
+            else {
+
+                itemsContainer.classList.remove('vertical-list');
+                itemsContainer.classList.add('vertical-wrap');
+                itemsContainer.classList.add('centered');
+            }
+            itemsContainer.innerHTML = '';
         }
 
         function reloadItems() {
@@ -81,8 +101,6 @@
                     filterButton: false
                 });
 
-                view.querySelector('.paging').innerHTML = pagingHtml;
-
                 updateFilterControls();
 
                 var context = params.context;
@@ -92,38 +110,42 @@
                     shape: "auto",
                     centerText: true,
                     lazy: true,
-                    coverImage: item.Type == 'PhotoAlbum'
+                    coverImage: item.Type == 'PhotoAlbum',
+                    context: 'folders'
                 };
 
-                if (viewStyle == "Backdrop") {
-
-                    posterOptions.shape = 'backdrop';
-                    posterOptions.showTitle = true;
-                    posterOptions.preferBackdrop = true;
-
-                    html = libraryBrowser.getPosterViewHtml(posterOptions);
-                }
-                else if (viewStyle == "PosterCard") {
+                if (viewStyle == "PosterCard") {
 
                     posterOptions.showTitle = true;
                     posterOptions.showYear = true;
                     posterOptions.cardLayout = true;
                     posterOptions.centerText = false;
 
-                    html = libraryBrowser.getPosterViewHtml(posterOptions);
+                    html = cardBuilder.getCardsHtml(posterOptions);
+                }
+                else if (viewStyle == "List") {
+
+                    html = listView.getListViewHtml({
+                        items: result.Items,
+                        sortBy: query.SortBy
+                    });
                 }
                 else if (viewStyle == "Thumb") {
-
                     posterOptions.preferThumb = true;
+                    posterOptions.showTitle = true;
                     posterOptions.shape = "backdrop";
-                    html = libraryBrowser.getPosterViewHtml(posterOptions);
+                    posterOptions.centerText = true;
+                    posterOptions.overlayText = false;
+                    posterOptions.overlayMoreButton = true;
+                    html = cardBuilder.getCardsHtml(posterOptions);
                 } else {
 
                     // Poster
                     posterOptions.showTitle = context == 'photos' ? 'auto' : true;
                     posterOptions.overlayText = context == 'photos';
+                    posterOptions.overlayMoreButton = true;
 
-                    html = libraryBrowser.getPosterViewHtml(posterOptions);
+                    html = cardBuilder.getCardsHtml(posterOptions);
                 }
 
                 if (currentItem.CollectionType == 'boxsets') {
@@ -136,7 +158,7 @@
                 }
 
                 var elem = view.querySelector('#items');
-                elem.innerHTML = html + pagingHtml;
+                elem.innerHTML = html;
                 ImageLoader.lazyChildren(elem);
 
                 var i, length;
@@ -219,36 +241,6 @@
             valueChangeEvent: 'click'
         });
 
-        function parentWithClass(elem, className) {
-
-            while (!elem.classList || !elem.classList.contains(className)) {
-                elem = elem.parentNode;
-
-                if (!elem) {
-                    return null;
-                }
-            }
-
-            return elem;
-        }
-
-        view.addEventListener('click', function (e) {
-
-            var mediaItem = parentWithClass(e.target, 'mediaItem');
-            if (mediaItem) {
-                var query = getQuery();
-                var info = libraryBrowser.getListItemInfo(mediaItem);
-
-                if (info.mediaType == 'Photo') {
-                    require(['scripts/photos'], function () {
-                        Photos.startSlideshow(view, query, info.id);
-                    });
-                    e.preventDefault();
-                    return false;
-                }
-            }
-        });
-
         function updateFilterControls() {
 
             var query = getQuery();
@@ -259,15 +251,18 @@
         var btnSelectView = view.querySelector('.btnSelectView');
         btnSelectView.addEventListener('click', function (e) {
 
-            libraryBrowser.showLayoutMenu(e.target, getPageData().view, 'Poster,PosterCard,Thumb'.split(','));
+            libraryBrowser.showLayoutMenu(e.target, getPageData().view, 'List,Poster,PosterCard,Thumb'.split(','));
         });
 
         btnSelectView.addEventListener('layoutchange', function (e) {
             var layout = e.detail.viewStyle;
             getPageData().view = layout;
             libraryBrowser.saveViewSetting(getSavedQueryKey(), layout);
+            onViewStyleChange();
             reloadItems(view);
         });
+
+        onViewStyleChange();
 
         view.querySelector('.btnFilter').addEventListener('click', function () {
             showFilterMenu();
@@ -336,7 +331,6 @@
         view.addEventListener('viewbeforeshow', function (e) {
             reloadItems(view);
             updateFilterControls();
-            LibraryMenu.setBackButtonVisible(params.context);
         });
 
         view.addEventListener('viewdestroy', function (e) {

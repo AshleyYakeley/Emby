@@ -28,6 +28,8 @@ namespace MediaBrowser.Controller.Net
         /// <returns>System.Object.</returns>
         object GetResult(object content, string contentType, IDictionary<string,string> responseHeaders = null);
 
+        object GetAsyncStreamWriter(IAsyncStreamSource streamSource);
+
         /// <summary>
         /// Gets the optimized result.
         /// </summary>

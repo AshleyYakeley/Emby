@@ -1,13 +1,30 @@
-define([], function () {
+define(['dom'], function (dom) {
 
-    function autoFocus(view, defaultToFirst) {
+    var scopes = [];
+    function pushScope(elem) {
+        scopes.push(elem);
+    }
 
-        var element = view.querySelector('*[autofocus]');
-        if (element) {
-            focus(element);
-            return element;
-        } else if (defaultToFirst !== false) {
-            element = getFocusableElements(view)[0];
+    function popScope(elem) {
+
+        if (scopes.length) {
+            scopes.length -= 1;
+        }
+    }
+
+    function autoFocus(view, defaultToFirst, findAutoFocusElement) {
+
+        var element;
+        if (findAutoFocusElement !== false) {
+            element = view.querySelector('*[autofocus]');
+            if (element) {
+                focus(element);
+                return element;
+            }
+        }
+
+        if (defaultToFirst !== false) {
+            element = getFocusableElements(view, 1)[0];
 
             if (element) {
                 focus(element);
@@ -27,9 +44,16 @@ define([], function () {
         }
     }
 
-    var focusableTagNames = ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A', 'PAPER-CHECKBOX'];
+    var focusableTagNames = ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A'];
     var focusableContainerTagNames = ['BODY', 'DIALOG'];
-    var focusableQuery = focusableTagNames.join(',') + ',.focusable';
+    var focusableQuery = focusableTagNames.map(function (t) {
+
+        if (t == 'INPUT') {
+            t += ':not([type="range"])';
+        }
+        return t + ':not([tabindex="-1"]):not(:disabled)';
+
+    }).join(',') + ',.focusable';
 
     function isFocusable(elem) {
 
@@ -58,6 +82,17 @@ define([], function () {
     }
 
     // Determines if a focusable element can be focused at a given point in time 
+    function isCurrentlyFocusableInternal(elem) {
+
+        // http://stackoverflow.com/questions/19669786/check-if-element-is-visible-in-dom
+        if (elem.offsetParent === null) {
+            return false;
+        }
+
+        return true;
+    }
+
+    // Determines if a focusable element can be focused at a given point in time 
     function isCurrentlyFocusable(elem) {
 
         if (elem.disabled) {
@@ -68,11 +103,6 @@ define([], function () {
             return false;
         }
 
-        // http://stackoverflow.com/questions/19669786/check-if-element-is-visible-in-dom
-        if (elem.offsetParent === null) {
-            return false;
-        }
-
         if (elem.tagName == 'INPUT') {
             var type = elem.type;
             if (type == 'range') {
@@ -80,19 +110,27 @@ define([], function () {
             }
         }
 
-        return true;
+        return isCurrentlyFocusableInternal(elem);
     }
 
-    function getFocusableElements(parent) {
-        var elems = (parent || document).querySelectorAll(focusableQuery);
+    function getDefaultScope() {
+        return scopes[0] || document.body;
+    }
+
+    function getFocusableElements(parent, limit) {
+        var elems = (parent || getDefaultScope()).querySelectorAll(focusableQuery);
         var focusableElements = [];
 
         for (var i = 0, length = elems.length; i < length; i++) {
 
             var elem = elems[i];
 
-            if (isCurrentlyFocusable(elem)) {
+            if (isCurrentlyFocusableInternal(elem)) {
                 focusableElements.push(elem);
+
+                if (limit && focusableElements.length >= limit) {
+                    break;
+                }
             }
         }
 
@@ -127,56 +165,45 @@ define([], function () {
             elem = elem.parentNode;
 
             if (!elem) {
-                return document.body;
+                return getDefaultScope();
             }
         }
 
         return elem;
     }
 
-    function getWindowData(win, documentElement) {
+    function getOffset(elem) {
 
-        return {
-            pageYOffset: win.pageYOffset,
-            pageXOffset: win.pageXOffset,
-            clientTop: documentElement.clientTop,
-            clientLeft: documentElement.clientLeft
-        };
-    }
-
-    function getOffset(elem, windowData) {
-
-        var box = { top: 0, left: 0 };
+        var box;
 
         // Support: BlackBerry 5, iOS 3 (original iPhone)
         // If we don't have gBCR, just use 0,0 rather than error
         if (elem.getBoundingClientRect) {
             box = elem.getBoundingClientRect();
+        } else {
+            box = {
+                top: 0,
+                left: 0,
+                width: 0,
+                height: 0
+            };
         }
         return {
-            top: box.top + windowData.pageYOffset - windowData.clientTop,
-            left: box.left + windowData.pageXOffset - windowData.clientLeft
+            top: box.top,
+            left: box.left,
+            width: box.width,
+            height: box.height
         };
     }
 
-    function getViewportBoundingClientRect(elem, windowData) {
+    function getViewportBoundingClientRect(elem) {
 
-        var offset = getOffset(elem, windowData);
+        var offset = getOffset(elem);
 
-        var posY = offset.top - windowData.pageXOffset;
-        var posX = offset.left - windowData.pageYOffset;
+        offset.right = offset.left + offset.width;
+        offset.bottom = offset.top + offset.height;
 
-        var width = elem.offsetWidth;
-        var height = elem.offsetHeight;
-
-        return {
-            left: posX,
-            top: posY,
-            width: width,
-            height: height,
-            right: posX + width,
-            bottom: posY + height
-        };
+        return offset;
     }
 
     function nav(activeElement, direction) {
@@ -187,18 +214,16 @@ define([], function () {
             activeElement = focusableParent(activeElement);
         }
 
-        var container = activeElement ? getFocusContainer(activeElement, direction) : document.body;
+        var container = activeElement ? getFocusContainer(activeElement, direction) : getDefaultScope();
 
         if (!activeElement) {
-            autoFocus(container, true);
+            autoFocus(container, true, false);
             return;
         }
 
-        var focusableContainer = parentWithClass(activeElement, 'focusable');
+        var focusableContainer = dom.parentWithClass(activeElement, 'focusable');
 
-        var doc = activeElement.ownerDocument;
-        var windowData = getWindowData(doc.defaultView, doc.documentElement);
-        var rect = getViewportBoundingClientRect(activeElement, windowData);
+        var rect = getViewportBoundingClientRect(activeElement);
         var focusableElements = [];
 
         var focusable = container.querySelectorAll(focusableQuery);
@@ -213,11 +238,16 @@ define([], function () {
                 continue;
             }
 
-            if (!isCurrentlyFocusable(curr)) {
+            //if (!isCurrentlyFocusableInternal(curr)) {
+            //    continue;
+            //}
+
+            var elementRect = getViewportBoundingClientRect(curr);
+
+            // not currently visible
+            if (!elementRect.width && !elementRect.height) {
                 continue;
             }
-
-            var elementRect = getViewportBoundingClientRect(curr, windowData);
 
             switch (direction) {
 
@@ -273,27 +303,14 @@ define([], function () {
             var nearestElement = nearest[0].node;
 
             // See if there's a focusable container, and if so, send the focus command to that
-            var nearestElementFocusableParent = parentWithClass(nearestElement, 'focusable');
+            var nearestElementFocusableParent = dom.parentWithClass(nearestElement, 'focusable');
             if (nearestElementFocusableParent && nearestElementFocusableParent != nearestElement && activeElement) {
-                if (parentWithClass(activeElement, 'focusable') != nearestElementFocusableParent) {
+                if (dom.parentWithClass(activeElement, 'focusable') != nearestElementFocusableParent) {
                     nearestElement = nearestElementFocusableParent;
                 }
             }
             focus(nearestElement);
         }
-    }
-
-    function parentWithClass(elem, className) {
-
-        while (!elem.classList || !elem.classList.contains(className)) {
-            elem = elem.parentNode;
-
-            if (!elem) {
-                return null;
-            }
-        }
-
-        return elem;
     }
 
     function intersectsInternal(a1, a2, b1, b2) {
@@ -423,6 +440,8 @@ define([], function () {
             nav(sourceElement, 3);
         },
         sendText: sendText,
-        isCurrentlyFocusable: isCurrentlyFocusable
+        isCurrentlyFocusable: isCurrentlyFocusable,
+        pushScope: pushScope,
+        popScope: popScope
     };
 });

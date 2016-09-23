@@ -27,8 +27,6 @@ namespace MediaBrowser.Model.Configuration
         public bool DisplayMissingEpisodes { get; set; }
         public bool DisplayUnairedEpisodes { get; set; }
 
-        public bool GroupMoviesIntoBoxSets { get; set; }
-
         public string[] ExcludeFoldersFromGrouping { get; set; }
         public string[] GroupedFolders { get; set; }
 
@@ -43,12 +41,10 @@ namespace MediaBrowser.Model.Configuration
         public string[] PlainFolderViews { get; set; }
 
         public bool HidePlayedInLatest { get; set; }
-        public bool EnableChannelView { get; set; }
 
         public bool RememberAudioSelections { get; set; }
         public bool RememberSubtitleSelections { get; set; }
         public bool EnableNextEpisodeAutoPlay { get; set; }
-        public bool DisplayFoldersView { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UserConfiguration" /> class.

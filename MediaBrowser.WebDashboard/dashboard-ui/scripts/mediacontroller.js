@@ -1,6 +1,8 @@
-﻿define(['appStorage'], function (appStorage) {
+﻿define(['appStorage', 'events', 'browser'], function (appStorage, events, browser) {
 
     var currentDisplayInfo;
+    var datetime;
+
     function mirrorItem(info) {
 
         var item = info.item;
@@ -30,7 +32,7 @@
 
     function monitorPlayer(player) {
 
-        Events.on(player, 'playbackstart', function (e, state) {
+        events.on(player, 'playbackstart', function (e, state) {
 
             var info = {
                 QueueableMediaTypes: state.NowPlayingItem.MediaType,
@@ -44,7 +46,7 @@
 
         });
 
-        Events.on(player, 'playbackstop', function (e, state) {
+        events.on(player, 'playbackstop', function (e, state) {
 
             var stopInfo = {
                 itemId: state.NowPlayingItem.Id,
@@ -101,17 +103,22 @@
                     title: Globalize.translate('HeaderSelectPlayer'),
                     items: menuItems,
                     positionTo: button,
-                    enableHistory: enableHistory !== false,
-                    callback: function (id) {
 
-                        var target = targets.filter(function (t) {
-                            return t.id == id;
-                        })[0];
+                    // Unfortunately we can't allow the url to change or chromecast will throw a security error
+                    // Might be able to solve this in the future by moving the dialogs to hashbangs
+                    enableHistory: enableHistory !== false && !browser.chrome,
+                    resolveOnClick: true
 
-                        MediaController.trySetActivePlayer(target.playerName, target);
+                }).then(function (id) {
 
-                        mirrorIfEnabled();
-                    }
+                    var target = targets.filter(function (t) {
+                        return t.id == id;
+                    })[0];
+
+                    MediaController.trySetActivePlayer(target.playerName, target);
+
+                    mirrorIfEnabled();
+
                 });
             });
         });
@@ -119,7 +126,7 @@
 
     function showActivePlayerMenu(playerInfo) {
 
-        require(['dialogHelper', 'emby-checkbox', 'emby-button'], function (dialogHelper) {
+        require(['dialogHelper', 'dialog', 'emby-checkbox', 'emby-button'], function (dialogHelper) {
             showActivePlayerMenuInternal(dialogHelper, playerInfo);
         });
     }
@@ -139,11 +146,14 @@
 
         var dlg = dialogHelper.createDialog(dialogOptions);
 
+        dlg.classList.add('promptDialog');
+
+        html += '<div class="promptDialogContent">';
         html += '<h2>';
         html += (playerInfo.deviceName || playerInfo.name);
         html += '</h2>';
 
-        html += '<div style="padding:0 2em;">';
+        html += '<div>';
 
         if (playerInfo.supportedCommands.indexOf('DisplayContent') != -1) {
 
@@ -156,20 +166,19 @@
 
         html += '</div>';
 
-        html += '<div class="buttons">';
+        html += '<div class="promptDialogButtons">';
 
         // On small layouts papepr dialog doesn't respond very well. this button isn't that important here anyway.
         if (screen.availWidth >= 600) {
-            html += '<button is="emby-button" type="button" class="btnRemoteControl">' + Globalize.translate('ButtonRemoteControl') + '</button>';
+            html += '<button is="emby-button" type="button" class="btnRemoteControl promptDialogButton">' + Globalize.translate('ButtonRemoteControl') + '</button>';
         }
 
-        html += '<button is="emby-button" type="button" class="btnDisconnect">' + Globalize.translate('ButtonDisconnect') + '</button>';
-        html += '<button is="emby-button" type="button" class="btnCancel">' + Globalize.translate('ButtonCancel') + '</button>';
+        html += '<button is="emby-button" type="button" class="btnDisconnect promptDialogButton">' + Globalize.translate('ButtonDisconnect') + '</button>';
+        html += '<button is="emby-button" type="button" class="btnCancel promptDialogButton">' + Globalize.translate('ButtonCancel') + '</button>';
         html += '</div>';
 
+        html += '</div>';
         dlg.innerHTML = html;
-
-        document.body.appendChild(dlg);
 
         var chkMirror = dlg.querySelector('.chkMirror');
 
@@ -207,72 +216,12 @@
         MediaController.enableDisplayMirroring(this.checked);
     }
 
-    function bindKeys(controller) {
-
-        var self = this;
-        var keyResult = {};
-
-        self.keyBinding = function (e) {
-
-            if (bypass()) return;
-
-            console.log("keyCode", e.keyCode);
-
-            if (keyResult[e.keyCode]) {
-                e.preventDefault();
-                keyResult[e.keyCode](e);
-            }
-        };
-
-        self.keyPrevent = function (e) {
-
-            if (bypass()) return;
-
-            var codes = [32, 38, 40, 37, 39, 81, 77, 65, 84, 83, 70];
-
-            if (codes.indexOf(e.keyCode) != -1) {
-                e.preventDefault();
-            }
-        };
-
-        keyResult[32] = function () { // spacebar
-
-            var player = controller.getCurrentPlayer();
-
-            player.getPlayerState().then(function (result) {
-
-                var state = result;
-
-                if (state.NowPlayingItem && state.PlayState) {
-                    if (state.PlayState.IsPaused) {
-                        player.unpause();
-                    } else {
-                        player.pause();
-                    }
-                }
-            });
-        };
-
-        var bypass = function () {
-            // Get active elem to see what type it is
-            var active = document.activeElement;
-            var type = active.type || active.tagName.toLowerCase();
-            return (type === "text" || type === "select" || type === "textarea" || type == "password");
-        };
-    }
-
     function mediaController() {
 
         var self = this;
         var currentPlayer;
         var currentTargetInfo;
         var players = [];
-
-        var keys = new bindKeys(self);
-
-        window.addEventListener('keydown', keys.keyBinding);
-        window.addEventListener('keypress', keys.keyPrevent);
-        window.addEventListener('keyup', keys.keyPrevent);
 
         self.registerPlayer = function (player) {
 
@@ -282,16 +231,16 @@
                 monitorPlayer(player);
             }
 
-            Events.on(player, 'playbackstop', onPlaybackStop);
-            Events.on(player, 'beforeplaybackstart', onBeforePlaybackStart);
+            events.on(player, 'playbackstop', onPlaybackStop);
+            events.on(player, 'beforeplaybackstart', onBeforePlaybackStart);
         };
 
         function onBeforePlaybackStart(e, state) {
-            Events.trigger(self, 'beforeplaybackstart', [state, this]);
+            events.trigger(self, 'beforeplaybackstart', [state, this]);
         }
 
         function onPlaybackStop(e, state) {
-            Events.trigger(self, 'playbackstop', [state, this]);
+            events.trigger(self, 'playbackstop', [state, this]);
         }
 
         self.getPlayerInfo = function () {
@@ -312,7 +261,7 @@
 
         function triggerPlayerChange(newPlayer, newTarget, previousPlayer) {
 
-            Events.trigger(self, 'playerchange', [newPlayer, newTarget, previousPlayer]);
+            events.trigger(self, 'playerchange', [newPlayer, newTarget, previousPlayer]);
         }
 
         self.setActivePlayer = function (player, targetInfo) {
@@ -367,6 +316,11 @@
                 console.log('Active player: ' + JSON.stringify(currentTargetInfo));
 
                 triggerPlayerChange(player, targetInfo, previousPlayer);
+            }, function () {
+
+                if (currentPairingId == targetInfo.id) {
+                    currentPairingId = null;
+                }
             });
         };
 
@@ -516,11 +470,11 @@
                 return;
             }
 
-            requirejs(["registrationservices"], function () {
+            requirejs(["registrationservices"], function (registrationServices) {
 
                 self.playbackTimeLimitMs = null;
 
-                RegistrationServices.validateFeature('playback').then(fn, function () {
+                registrationServices.validateFeature('playback').then(fn, function () {
 
                     self.playbackTimeLimitMs = lockedTimeLimitMs;
                     startAutoStopTimer();
@@ -572,6 +526,12 @@
 
         self.play = function (options) {
 
+            if (options.enableRemotePlayers === false) {
+                if (!currentPlayer.isLocalPlayer) {
+                    return;
+                }
+            }
+
             doWithPlaybackValidation(currentPlayer, function () {
                 if (typeof (options) === 'string') {
                     options = { ids: [options] };
@@ -583,12 +543,23 @@
 
         self.shuffle = function (id) {
 
+            // accept both id and item being passed in
+            if (id.Id) {
+                id = id.Id;
+            }
+
             doWithPlaybackValidation(currentPlayer, function () {
                 currentPlayer.shuffle(id);
             });
         };
 
         self.instantMix = function (id) {
+
+            // accept both id and item being passed in
+            if (id.Id) {
+                id = id.Id;
+            }
+
             doWithPlaybackValidation(currentPlayer, function () {
                 currentPlayer.instantMix(id);
             });
@@ -613,6 +584,13 @@
         };
 
         self.canPlay = function (item) {
+
+            if (item.Type == "Program") {
+                if (new Date().getTime() > datetime.parseISO8601Date(item.EndDate).getTime() || new Date().getTime() < datetime.parseISO8601Date(item.StartDate).getTime()) {
+                    return false;
+                }
+                return true;
+            }
 
             return self.canPlayByAttributes(item.Type, item.MediaType, item.PlayAccess, item.LocationType);
         };
@@ -781,10 +759,7 @@
                     break;
                 default:
                     {
-                        if (player.isLocalPlayer) {
-                            // Not player-related
-                            Dashboard.processGeneralCommand(cmd);
-                        } else {
+                        if (!player.isLocalPlayer) {
                             player.sendCommand(cmd);
                         }
                         break;
@@ -793,9 +768,20 @@
         };
 
         // TOOD: This doesn't really belong here
-        self.getNowPlayingNameHtml = function (nowPlayingItem, includeNonNameInfo) {
+        self.getNowPlayingNames = function (nowPlayingItem, includeNonNameInfo) {
 
+            var topItem = nowPlayingItem;
+            var bottomItem = null;
             var topText = nowPlayingItem.Name;
+
+            if (nowPlayingItem.AlbumId && nowPlayingItem.MediaType == 'Audio') {
+                topItem = {
+                    Id: nowPlayingItem.AlbumId,
+                    Name: nowPlayingItem.Album,
+                    Type: 'MusicAlbum',
+                    IsFolder: true
+                };
+            }
 
             if (nowPlayingItem.MediaType == 'Video') {
                 if (nowPlayingItem.IndexNumber != null) {
@@ -809,18 +795,69 @@
             var bottomText = '';
 
             if (nowPlayingItem.Artists && nowPlayingItem.Artists.length) {
-                bottomText = topText;
-                topText = nowPlayingItem.Artists[0];
+
+                if (nowPlayingItem.ArtistItems && nowPlayingItem.ArtistItems.length) {
+
+                    bottomItem = {
+                        Id: nowPlayingItem.ArtistItems[0].Id,
+                        Name: nowPlayingItem.ArtistItems[0].Name,
+                        Type: 'MusicArtist',
+                        IsFolder: true
+                    };
+
+                    bottomText = bottomItem.Name;
+                } else {
+                    bottomText = nowPlayingItem.Artists[0];
+                }
             }
             else if (nowPlayingItem.SeriesName || nowPlayingItem.Album) {
                 bottomText = topText;
                 topText = nowPlayingItem.SeriesName || nowPlayingItem.Album;
+
+                bottomItem = topItem;
+
+                if (nowPlayingItem.SeriesId) {
+                    topItem = {
+                        Id: nowPlayingItem.SeriesId,
+                        Name: nowPlayingItem.SeriesName,
+                        Type: 'Series',
+                        IsFolder: true
+                    };
+                } else {
+                    topItem = null;
+                }
             }
             else if (nowPlayingItem.ProductionYear && includeNonNameInfo !== false) {
                 bottomText = nowPlayingItem.ProductionYear;
             }
 
-            return bottomText ? topText + '<br/>' + bottomText : topText;
+            var list = [];
+
+            list.push({
+                text: topText,
+                item: topItem
+            });
+
+            if (bottomText) {
+                list.push({
+                    text: bottomText,
+                    item: bottomItem
+                });
+            }
+
+            return list;
+        };
+
+        // TOOD: This doesn't really belong here
+        self.getNowPlayingNameHtml = function (nowPlayingItem, includeNonNameInfo) {
+
+            var names = self.getNowPlayingNames(nowPlayingItem, includeNonNameInfo);
+
+            return names.map(function (i) {
+
+                return i.text;
+
+            }).join('<br/>');
         };
 
         self.showPlaybackInfoErrorMessage = function (errorCode) {
@@ -853,7 +890,7 @@
 
             return new Promise(function (resolve, reject) {
 
-                require(['localassetmanager'], function () {
+                require(['localassetmanager'], function (LocalAssetManager) {
 
                     var serverInfo = ApiClient.serverInfo();
 
@@ -966,7 +1003,7 @@
 
                     if (mediaSource.Protocol == 'File') {
 
-                        require(['localassetmanager'], function () {
+                        require(['localassetmanager'], function (LocalAssetManager) {
 
                             LocalAssetManager.fileExists(mediaSource.Path).then(function (exists) {
                                 console.log('LocalAssetManager.fileExists: path: ' + mediaSource.Path + ' result: ' + exists);
@@ -988,75 +1025,31 @@
 
     function onWebSocketMessageReceived(e, msg) {
 
-        var localPlayer;
-
-        if (msg.MessageType === "Play") {
-
-            localPlayer = MediaController.getLocalPlayer();
-
-            if (msg.Data.PlayCommand == "PlayNext") {
-                localPlayer.queueNext({ ids: msg.Data.ItemIds });
-            }
-            else if (msg.Data.PlayCommand == "PlayLast") {
-                localPlayer.queue({ ids: msg.Data.ItemIds });
-            }
-            else {
-                localPlayer.play({ ids: msg.Data.ItemIds, startPositionTicks: msg.Data.StartPositionTicks });
-            }
-
-        }
-        else if (msg.MessageType === "ServerShuttingDown") {
+        if (msg.MessageType === "ServerShuttingDown") {
             MediaController.setDefaultPlayerActive();
         }
         else if (msg.MessageType === "ServerRestarting") {
             MediaController.setDefaultPlayerActive();
         }
-        else if (msg.MessageType === "Playstate") {
-
-            localPlayer = MediaController.getLocalPlayer();
-
-            if (msg.Data.Command === 'Stop') {
-                localPlayer.stop();
-            }
-            else if (msg.Data.Command === 'Pause') {
-                localPlayer.pause();
-            }
-            else if (msg.Data.Command === 'Unpause') {
-                localPlayer.unpause();
-            }
-            else if (msg.Data.Command === 'Seek') {
-                localPlayer.seek(msg.Data.SeekPositionTicks);
-            }
-            else if (msg.Data.Command === 'NextTrack') {
-                localPlayer.nextTrack();
-            }
-            else if (msg.Data.Command === 'PreviousTrack') {
-                localPlayer.previousTrack();
-            }
-        }
-        else if (msg.MessageType === "GeneralCommand") {
-
-            var cmd = msg.Data;
-
-            localPlayer = MediaController.getLocalPlayer();
-
-            MediaController.sendCommand(cmd, localPlayer);
-        }
     }
 
     function initializeApiClient(apiClient) {
-        Events.off(apiClient, "websocketmessage", onWebSocketMessageReceived);
-        Events.on(apiClient, "websocketmessage", onWebSocketMessageReceived);
+        events.off(apiClient, "websocketmessage", onWebSocketMessageReceived);
+        events.on(apiClient, "websocketmessage", onWebSocketMessageReceived);
     }
 
     MediaController.init = function () {
 
         console.log('Beginning MediaController.init');
+        require(['datetime'], function (datetimeInstance) {
+            datetime = datetimeInstance;
+        });
+
         if (window.ApiClient) {
             initializeApiClient(window.ApiClient);
         }
 
-        Events.on(ConnectionManager, 'apiclientcreated', function (e, apiClient) {
+        events.on(ConnectionManager, 'apiclientcreated', function (e, apiClient) {
             initializeApiClient(apiClient);
         });
     };

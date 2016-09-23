@@ -1,14 +1,15 @@
-[is=emby-collapse] {
+.emby-collapse {
     margin: .5em 0;
 }
 
 .collapseContent {
-    border-width: 0 1px 1px 1px;
-    padding: 1em 1.25em;
+    border-width: 0;
+    padding: 1.25em 1.25em;
     height: 0;
     transition-property: height;
     transition-duration: 300ms;
     overflow: hidden;
+    background: #222;
 }
 
 .emby-collapsible-button {
@@ -18,17 +19,22 @@
     text-transform: none;
     width: 100%;
     text-align: left;
+    border: 0;
+    text-transform: none;
+    border-bottom: 1px solid #333;
+    padding-left: .1em;
 }
-
-    .emby-collapsible-button.noflex h3 {
-        display: inline-block;
-    }
 
 .emby-collapse-expandIcon {
     transform-origin: 50% 50%;
     transition: transform 180ms ease-out;
 }
 
-    .emby-collapse-expandIcon.expanded {
-        transform: rotate(180deg);
-    }
+.emby-collapse-expandIconExpanded {
+    transform: rotate(180deg);
+}
+
+.emby-collapsible-title {
+    margin: 0;
+    padding: 0;
+}
